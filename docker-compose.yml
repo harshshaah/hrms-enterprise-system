@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7-jammy
+    container_name: hrms_mongodb
+    restart: always
+    ports:
+      - '27017:27017'
+    environment:
+      MONGO_INITDB_DATABASE: hrms_enterprise
+    volumes:
+      - mongo_data:/data/db
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: hrms_backend
+    restart: always
+    ports:
+      - '5002:5002'
+    environment:
+      - PORT=5002
+      - MONGODB_URI=mongodb://mongodb:27017/hrms_enterprise
+      - JWT_SECRET=hrms_super_secure_enterprise_secret_production_2026
+      - JWT_EXPIRES_IN=7d
+      - FRONTEND_URL=http://localhost
+    depends_on:
+      - mongodb
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=/api/v1
+    container_name: hrms_frontend
+    restart: always
+    ports:
+      - '80:80'
+    depends_on:
+      - backend
+
+volumes:
+  mongo_data:
+
