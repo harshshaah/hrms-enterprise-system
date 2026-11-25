@@ -6,6 +6,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  RefreshCw,
   Search,
   SlidersHorizontal,
   Trash2,
@@ -313,19 +314,31 @@ const Leave = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              "/leaves/add",
-            )
-          }
-          className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
-        >
-          <Plus size={18} />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={fetchLeaves}
+            disabled={loading}
+            className="flex items-center justify-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
 
-          Apply Leave
-        </button>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                "/leaves/add",
+              )
+            }
+            className="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+          >
+            <Plus size={18} />
+
+            Apply Leave
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

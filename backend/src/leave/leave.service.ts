@@ -197,7 +197,8 @@ export class LeaveService {
 
     // Validate Annual Leave Balance Quota
     const targetYear = start.getFullYear();
-    const balance = await this.getOrCreateBalance(employee, targetYear, organizationId);
+    const effectiveOrgId = organizationId || (employeeExists.organization ? employeeExists.organization.toString() : undefined);
+    const balance = await this.getOrCreateBalance(employee, targetYear, effectiveOrgId);
     const typeKey = createLeaveDto.leaveType === 'paid' ? 'earned' : createLeaveDto.leaveType;
     if (typeKey !== 'unpaid' && typeKey !== 'other' && (balance as any)[typeKey]) {
       const avail = (balance as any)[typeKey].remaining;
@@ -216,7 +217,7 @@ export class LeaveService {
             new Types.ObjectId(
               employee,
             ),
-          organization: organizationId ? new Types.ObjectId(organizationId) : null,
+          organization: effectiveOrgId ? new Types.ObjectId(effectiveOrgId) : null,
           startDate: start,
           endDate: end,
           totalDays,

@@ -279,6 +279,9 @@ export class AuthService {
 
       organization:
         orgId,
+
+      employee:
+        user.employee ? user.employee.toString() : null,
     };
 
     const accessToken =
