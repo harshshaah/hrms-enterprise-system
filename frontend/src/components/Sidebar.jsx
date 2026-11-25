@@ -9,6 +9,7 @@ import {
   CalendarCheck,
   CalendarDays,
   Clock,
+  CreditCard,
   Wallet,
   ChartNoAxesCombined,
   Settings,
@@ -133,6 +134,12 @@ const menuItems = [
     path: '/notifications',
     icon: Bell,
     roles: ['admin', 'hr', 'employee'],
+  },
+  {
+    name: 'Plans & Billing',
+    path: '/billing',
+    icon: CreditCard,
+    roles: ['admin', 'superadmin'],
   },
   {
     name: 'Settings',

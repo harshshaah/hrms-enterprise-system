@@ -209,9 +209,14 @@ function Navbar() {
               {user?.organization?.name || "HRMS"}
             </h1>
             {user?.organization?.subscription?.plan && (
-              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-600/20">
+              <button
+                type="button"
+                onClick={() => navigate("/billing")}
+                className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-600/20 hover:bg-blue-100 transition cursor-pointer"
+                title="View Plans & Billing"
+              >
                 {user.organization.subscription.plan}
-              </span>
+              </button>
             )}
           </div>
 

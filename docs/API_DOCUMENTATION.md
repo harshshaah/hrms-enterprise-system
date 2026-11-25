@@ -281,3 +281,15 @@ Authorization: Bearer <accessToken>
 - `GET /dashboard`: Aggregated enterprise dashboard for Admin and HR.
 - `GET /dashboard/me`: Personalized dashboard for authenticated employee.
 
+---
+
+## 10. Organization & Subscription Billing (`/organizations`)
+
+| Method | Route | Roles | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/organizations/my-subscription` | All Roles | Current organization tier, employee slot usage meter & plans |
+| `POST` | `/organizations/upgrade-subscription` | `admin`, `superadmin` | Upgrade workspace plan with simulated payment processing |
+| `POST` | `/organizations` | `admin`, `superadmin` | Create new organization workspace |
+| `GET` | `/organizations/:id` | `admin`, `hr`, `superadmin` | Get organization profile & settings |
+| `PATCH` | `/organizations/:id` | `admin`, `superadmin` | Update organization settings & branding |
+

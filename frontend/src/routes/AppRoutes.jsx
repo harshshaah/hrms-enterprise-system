@@ -47,6 +47,7 @@ import AddUser from "../pages/AddUser";
 
 import EmployeeProfile from "../pages/EmployeeProfile";
 import Settings from "../pages/Settings";
+import Billing from "../pages/Billing";
 import Notifications from "../pages/Notifications";
 
 import Documents from "../pages/Documents";
@@ -160,7 +161,8 @@ function AppRoutes() {
             <Route path="/users/add" element={<AddUser />} />
             <Route path="/users/:id/edit" element={<EditUser />} />
 
-            {/* Settings */}
+            {/* Settings & Billing */}
+            <Route path="/billing" element={<Billing />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
         </Route>

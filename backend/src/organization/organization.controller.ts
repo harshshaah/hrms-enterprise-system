@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Req } from '@nestjs/common';
 import { OrganizationService } from './organization.service';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { UpdateOrganizationDto } from './dto/update-organization.dto';
@@ -31,6 +31,27 @@ export class OrganizationController {
       success: true,
       data: orgs,
     };
+  }
+
+  @Get('my-subscription')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('superadmin', 'admin', 'hr', 'employee')
+  async getMySubscription(@Req() req: any) {
+    const orgId = req.user?.organizationId;
+    const data = await this.orgService.getMySubscription(orgId);
+    return {
+      success: true,
+      data,
+    };
+  }
+
+  @Post('upgrade-subscription')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('superadmin', 'admin')
+  async upgradeSubscription(@Req() req: any, @Body() body: any) {
+    const orgId = req.user?.organizationId;
+    const result = await this.orgService.upgradeSubscription(orgId, body);
+    return result;
   }
 
   @Get(':id')
