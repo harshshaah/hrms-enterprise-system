@@ -191,6 +191,18 @@ export class AuthService {
 
     const accessToken = await this.jwtService.signAsync(payload);
 
+    try {
+      await this.emailService.sendCompanyRegistrationEmail(
+        email,
+        savedOrg.name,
+        savedOrg.slug,
+        savedOrg.subscription?.plan || 'free',
+        trialEndsAt,
+      );
+    } catch (mailErr) {
+      // Log warning without failing company signup
+    }
+
     return {
       accessToken,
       user: {
