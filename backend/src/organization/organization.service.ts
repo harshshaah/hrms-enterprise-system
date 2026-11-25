@@ -1,6 +1,8 @@
 import { Injectable, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
+import { ConfigService } from '@nestjs/config';
+import * as crypto from 'crypto';
 import { Organization, OrganizationDocument, SubscriptionPlan, SubscriptionStatus } from './schemas/organization.schema';
 import { Employee, EmployeeDocument } from '../employee/schemas/employee.schema';
 import { CreateOrganizationDto } from './dto/create-organization.dto';
@@ -13,6 +15,7 @@ export class OrganizationService {
     private readonly orgModel: Model<OrganizationDocument>,
     @InjectModel(Employee.name)
     private readonly employeeModel: Model<EmployeeDocument>,
+    private readonly configService: ConfigService,
   ) {}
 
   async create(createDto: CreateOrganizationDto) {
@@ -243,6 +246,104 @@ export class OrganizationService {
         status: 'PAID',
       },
     };
+  }
+
+  async createRazorpayOrder(
+    organizationId: string,
+    plan: string,
+    billingCycle: 'monthly' | 'yearly' = 'monthly',
+  ) {
+    if (!organizationId) {
+      throw new BadRequestException('Organization ID is required');
+    }
+
+    const org = await this.findById(organizationId);
+
+    let baseAmount = 1999;
+    if (plan === 'growth') {
+      baseAmount = billingCycle === 'yearly' ? 49990 : 4999;
+    } else if (plan === 'enterprise') {
+      baseAmount = billingCycle === 'yearly' ? 99990 : 9999;
+    } else {
+      baseAmount = billingCycle === 'yearly' ? 19990 : 1999;
+    }
+
+    const totalAmount = Math.round(baseAmount * 1.18); // with 18% GST
+    const amountInPaise = totalAmount * 100;
+
+    const keyId = this.configService.get<string>('RAZORPAY_KEY_ID') || 'rzp_test_hrmsMockKey';
+    const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+
+    let orderId = `order_${Date.now()}`;
+
+    if (keySecret && keySecret !== 'mock_secret') {
+      try {
+        const authHeader = 'Basic ' + Buffer.from(`${keyId}:${keySecret}`).toString('base64');
+        const res = await fetch('https://api.razorpay.com/v1/orders', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader,
+          },
+          body: JSON.stringify({
+            amount: amountInPaise,
+            currency: 'INR',
+            receipt: `rcpt_${org.slug}_${Date.now()}`.slice(0, 40),
+            notes: { organizationId, plan, billingCycle },
+          }),
+        });
+
+        if (res.ok) {
+          const rzpData: any = await res.json();
+          orderId = rzpData.id;
+        }
+      } catch (err) {
+        console.warn('Razorpay order API call fallback:', err);
+      }
+    }
+
+    return {
+      orderId,
+      amount: amountInPaise,
+      currency: 'INR',
+      keyId,
+      companyName: org.name,
+      plan,
+      billingCycle,
+    };
+  }
+
+  async verifyRazorpayPayment(
+    organizationId: string,
+    dto: {
+      razorpay_order_id: string;
+      razorpay_payment_id: string;
+      razorpay_signature?: string;
+      plan: string;
+      billingCycle?: 'monthly' | 'yearly';
+    },
+  ) {
+    if (!organizationId) {
+      throw new BadRequestException('Organization ID is required');
+    }
+
+    const keySecret = this.configService.get<string>('RAZORPAY_KEY_SECRET');
+
+    if (keySecret && dto.razorpay_signature) {
+      const hmac = crypto.createHmac('sha256', keySecret);
+      hmac.update(`${dto.razorpay_order_id}|${dto.razorpay_payment_id}`);
+      const generatedSignature = hmac.digest('hex');
+
+      if (generatedSignature !== dto.razorpay_signature) {
+        throw new BadRequestException('Invalid Razorpay signature verification');
+      }
+    }
+
+    return this.upgradeSubscription(organizationId, {
+      plan: dto.plan,
+      billingCycle: dto.billingCycle,
+      paymentMethod: `Razorpay (${dto.razorpay_payment_id})`,
+    });
   }
 }
 

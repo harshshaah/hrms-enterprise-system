@@ -54,6 +54,31 @@ export class OrganizationController {
     return result;
   }
 
+  @Post('create-razorpay-order')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('superadmin', 'admin')
+  async createRazorpayOrder(@Req() req: any, @Body() body: any) {
+    const orgId = req.user?.organizationId;
+    const order = await this.orgService.createRazorpayOrder(
+      orgId,
+      body.plan,
+      body.billingCycle,
+    );
+    return {
+      success: true,
+      data: order,
+    };
+  }
+
+  @Post('verify-razorpay-payment')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('superadmin', 'admin')
+  async verifyRazorpayPayment(@Req() req: any, @Body() body: any) {
+    const orgId = req.user?.organizationId;
+    const result = await this.orgService.verifyRazorpayPayment(orgId, body);
+    return result;
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('superadmin', 'admin', 'hr')

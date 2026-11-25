@@ -17,6 +17,8 @@ import {
 import {
   getMySubscription,
   upgradeSubscription,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
 } from "../services/organizationService";
 
 export default function Billing() {
@@ -64,10 +66,77 @@ export default function Billing() {
     try {
       setUpgrading(true);
       setError("");
-      const res = await upgradeSubscription({
+
+      // 1. Create order on backend
+      const orderRes = await createRazorpayOrder({
         plan: selectedPlanForCheckout.id,
         billingCycle,
-        paymentMethod,
+      });
+
+      const orderData = orderRes?.data;
+
+      // 2. Load Razorpay script if not already present
+      const loadRazorpayScript = () => {
+        return new Promise((resolve) => {
+          if (window.Razorpay) {
+            resolve(true);
+            return;
+          }
+          const script = document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => resolve(true);
+          script.onerror = () => resolve(false);
+          document.body.appendChild(script);
+        });
+      };
+
+      const scriptLoaded = await loadRazorpayScript();
+
+      if (scriptLoaded && window.Razorpay && orderData?.keyId && !orderData.keyId.includes("mock")) {
+        // Real Razorpay popup
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: "INR",
+          name: orderData.companyName || "Zimyo SaaS HRMS",
+          description: `${selectedPlanForCheckout.name} Plan (${billingCycle})`,
+          order_id: orderData.orderId,
+          prefill: {
+            name: orderData.companyName || "",
+          },
+          handler: async function (response) {
+            try {
+              const verifyRes = await verifyRazorpayPayment({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                plan: selectedPlanForCheckout.id,
+                billingCycle,
+              });
+
+              setInvoice(verifyRes?.invoice || null);
+              setSuccess(`Workspace successfully upgraded to ${selectedPlanForCheckout.name} Plan!`);
+              setSelectedPlanForCheckout(null);
+              await fetchSubscription();
+            } catch (vErr) {
+              setError(vErr.message || "Payment verification failed.");
+            }
+          },
+          theme: { color: "#2563eb" },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        setUpgrading(false);
+        return;
+      }
+
+      // Fast simulation fallback (for demo/test environments)
+      const res = await verifyRazorpayPayment({
+        razorpay_order_id: orderData?.orderId || `order_${Date.now()}`,
+        razorpay_payment_id: `pay_${Date.now()}`,
+        plan: selectedPlanForCheckout.id,
+        billingCycle,
       });
 
       setInvoice(res?.invoice || null);

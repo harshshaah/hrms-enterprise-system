@@ -11,3 +11,17 @@ export const upgradeSubscription = async (data) => {
   });
 };
 
+export const createRazorpayOrder = async (data) => {
+  return apiRequest("/organizations/create-razorpay-order", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
+export const verifyRazorpayPayment = async (data) => {
+  return apiRequest("/organizations/verify-razorpay-payment", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+};
+
