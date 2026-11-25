@@ -19,19 +19,28 @@ function MyPayroll() {
         throw new Error("Employee profile not found.");
       }
 
-      // getPayrolls returns paginated { data: [...], pagination: {...} }
+      // Safely fetch and extract personal payroll records
       const response = await getPayrolls({ limit: 100 });
-      const allPayrolls = Array.isArray(response?.data?.data)
-        ? response.data.data
-        : Array.isArray(response?.data)
-        ? response.data
-        : Array.isArray(response?.data?.payrolls)
-        ? response.data.payrolls
-        : [];
+      let rawList = [];
+      if (Array.isArray(response)) {
+        rawList = response;
+      } else if (Array.isArray(response?.data?.data)) {
+        rawList = response.data.data;
+      } else if (Array.isArray(response?.data)) {
+        rawList = response.data;
+      } else if (Array.isArray(response?.data?.payrolls)) {
+        rawList = response.data.payrolls;
+      } else if (Array.isArray(response?.payrolls)) {
+        rawList = response.payrolls;
+      }
+
+      const allPayrolls = Array.isArray(rawList) ? rawList : [];
+      const currentEmployeeId = user?.employee?._id || user?.employee;
       
-      const myPayrolls = allPayrolls.filter(
-        (p) => p.employee?._id === user.employee || p.employee === user.employee
-      );
+      const myPayrolls = allPayrolls.filter((p) => {
+        const pEmpId = p.employee?._id || p.employee;
+        return String(pEmpId) === String(currentEmployeeId);
+      });
 
       setPayrolls(myPayrolls);
     } catch (err) {

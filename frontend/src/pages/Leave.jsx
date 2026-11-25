@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   Eye,
+  Loader2,
   Pencil,
   Plus,
   Search,
@@ -30,6 +31,7 @@ const Leave = () => {
 
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(null);
   const [error, setError] = useState("");
 
   const [search, setSearch] = useState("");
@@ -79,7 +81,9 @@ const Leave = () => {
   const handleApprove = async (
     id,
   ) => {
+    if (actionLoading) return;
     try {
+      setActionLoading(id);
       setError("");
 
       await approveLeave(id);
@@ -92,12 +96,15 @@ const Leave = () => {
         error.message ||
           "Failed to approve leave",
       );
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleReject = async (
     id,
   ) => {
+    if (actionLoading) return;
     const remarks =
       window.prompt(
         "Enter rejection remarks:",
@@ -108,6 +115,7 @@ const Leave = () => {
     }
 
     try {
+      setActionLoading(id);
       setError("");
 
       await rejectLeave(
@@ -123,12 +131,15 @@ const Leave = () => {
         error.message ||
           "Failed to reject leave",
       );
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleCancel = async (
     id,
   ) => {
+    if (actionLoading) return;
     const confirmed =
       window.confirm(
         "Are you sure you want to cancel this leave?",
@@ -139,6 +150,7 @@ const Leave = () => {
     }
 
     try {
+      setActionLoading(id);
       setError("");
 
       await cancelLeave(id);
@@ -151,12 +163,15 @@ const Leave = () => {
         error.message ||
           "Failed to cancel leave",
       );
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleDelete = async (
     id,
   ) => {
+    if (actionLoading) return;
     const confirmed =
       window.confirm(
         "Are you sure you want to delete this leave?",
@@ -167,6 +182,7 @@ const Leave = () => {
     }
 
     try {
+      setActionLoading(id);
       setError("");
 
       await deleteLeave(id);
@@ -179,6 +195,8 @@ const Leave = () => {
         error.message ||
           "Failed to delete leave",
       );
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -586,14 +604,22 @@ const Leave = () => {
                                     leave._id,
                                   )
                                 }
-                                className="rounded-lg p-2 text-gray-500 transition hover:bg-green-50 hover:text-green-600"
+                                disabled={Boolean(actionLoading)}
+                                className="rounded-lg p-2 text-gray-500 transition hover:bg-green-50 hover:text-green-600 disabled:opacity-50"
                                 title="Approve"
                               >
-                                <Check
-                                  size={
-                                    18
-                                  }
-                                />
+                                {actionLoading === leave._id ? (
+                                  <Loader2
+                                    size={18}
+                                    className="animate-spin text-green-600"
+                                  />
+                                ) : (
+                                  <Check
+                                    size={
+                                      18
+                                    }
+                                  />
+                                )}
                               </button>
                             )}
 
@@ -608,7 +634,8 @@ const Leave = () => {
                                     leave._id,
                                   )
                                 }
-                                className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                                disabled={Boolean(actionLoading)}
+                                className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                                 title="Reject"
                               >
                                 <X
@@ -629,7 +656,8 @@ const Leave = () => {
                                   leave._id,
                                 )
                               }
-                              className="rounded-lg p-2 text-gray-500 transition hover:bg-orange-50 hover:text-orange-600"
+                              disabled={Boolean(actionLoading)}
+                              className="rounded-lg p-2 text-gray-500 transition hover:bg-orange-50 hover:text-orange-600 disabled:opacity-50"
                               title="Cancel"
                             >
                               <X
@@ -649,7 +677,8 @@ const Leave = () => {
                                   leave._id,
                                 )
                               }
-                              className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                              disabled={Boolean(actionLoading)}
+                              className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                               title="Delete"
                             >
                               <Trash2

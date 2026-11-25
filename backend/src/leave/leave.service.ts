@@ -468,11 +468,16 @@ export class LeaveService {
       );
     }
 
-    if (
-      leave.status !== 'pending'
-    ) {
+    const currentStatus = String(leave.status || '').toLowerCase().trim();
+
+    // Idempotent approve: if already approved, return without throwing
+    if (currentStatus === 'approved') {
+      return leave;
+    }
+
+    if (currentStatus !== 'pending') {
       throw new BadRequestException(
-        'Only pending leaves can be approved',
+        `Only pending leaves can be approved (current status: ${leave.status})`,
       );
     }
 
@@ -489,16 +494,39 @@ export class LeaveService {
         },
       );
 
-    const employeeId = (leave.employee as any)._id || leave.employee;
-    const employee = await this.employeeModel.findById(employeeId);
-    if (employee && employee.email) {
-      await this.emailService.sendLeaveStatusEmail(
-        employee.email,
-        `${employee.firstName} ${employee.lastName}`,
-        'approved',
-        leave.startDate,
-        leave.endDate,
-      );
+    // Update leave balance quota safely
+    try {
+      const targetYear = new Date(leave.startDate).getFullYear();
+      const typeKey = leave.leaveType === 'paid' ? 'earned' : leave.leaveType;
+      const orgId = leave.organization ? leave.organization.toString() : undefined;
+      const empId = (leave.employee as any)?._id ? (leave.employee as any)._id.toString() : leave.employee?.toString();
+      if (empId) {
+        const balance = await this.getOrCreateBalance(empId, targetYear, orgId);
+        if (typeKey !== 'unpaid' && typeKey !== 'other' && (balance as any)[typeKey]) {
+          (balance as any)[typeKey].used = ((balance as any)[typeKey].used || 0) + (leave.totalDays || 1);
+          (balance as any)[typeKey].remaining = Math.max(0, (balance as any)[typeKey].total - (balance as any)[typeKey].used);
+          await (balance as any).save();
+        }
+      }
+    } catch (balErr) {
+      console.warn('Failed to update leave balance quota on approval:', balErr);
+    }
+
+    // Safely send email notification (don't fail approval if SMTP is unreachable)
+    try {
+      const employeeId = (leave.employee as any)?._id || leave.employee;
+      const employee = await this.employeeModel.findById(employeeId);
+      if (employee && employee.email) {
+        await this.emailService.sendLeaveStatusEmail(
+          employee.email,
+          `${employee.firstName} ${employee.lastName}`,
+          'approved',
+          leave.startDate,
+          leave.endDate,
+        );
+      }
+    } catch (emailErr) {
+      console.warn('Failed to send leave status email:', emailErr);
     }
 
     return updatedLeave;
@@ -537,11 +565,16 @@ export class LeaveService {
       );
     }
 
-    if (
-      leave.status !== 'pending'
-    ) {
+    const currentStatus = String(leave.status || '').toLowerCase().trim();
+
+    // Idempotent reject: if already rejected, return without throwing
+    if (currentStatus === 'rejected') {
+      return leave;
+    }
+
+    if (currentStatus !== 'pending') {
       throw new BadRequestException(
-        'Only pending leaves can be rejected',
+        `Only pending leaves can be rejected (current status: ${leave.status})`,
       );
     }
 
@@ -561,17 +594,21 @@ export class LeaveService {
         },
       );
 
-    const employeeId = (leave.employee as any)._id || leave.employee;
-    const employee = await this.employeeModel.findById(employeeId);
-    if (employee && employee.email) {
-      await this.emailService.sendLeaveStatusEmail(
-        employee.email,
-        `${employee.firstName} ${employee.lastName}`,
-        'rejected',
-        leave.startDate,
-        leave.endDate,
-        remarks,
-      );
+    try {
+      const employeeId = (leave.employee as any)?._id || leave.employee;
+      const employee = await this.employeeModel.findById(employeeId);
+      if (employee && employee.email) {
+        await this.emailService.sendLeaveStatusEmail(
+          employee.email,
+          `${employee.firstName} ${employee.lastName}`,
+          'rejected',
+          leave.startDate,
+          leave.endDate,
+          remarks,
+        );
+      }
+    } catch (emailErr) {
+      console.warn('Failed to send leave status email:', emailErr);
     }
 
     return updatedLeave;
@@ -598,11 +635,15 @@ export class LeaveService {
       );
     }
 
-    if (
-      leave.status !== 'pending'
-    ) {
+    const currentStatus = String(leave.status || '').toLowerCase().trim();
+
+    if (currentStatus === 'cancelled') {
+      return leave;
+    }
+
+    if (currentStatus !== 'pending') {
       throw new BadRequestException(
-        'Only pending leaves can be cancelled',
+        `Only pending leaves can be cancelled (current status: ${leave.status})`,
       );
     }
 
