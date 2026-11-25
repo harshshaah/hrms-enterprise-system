@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 
@@ -51,6 +52,62 @@ export class AttendanceController {
   constructor(
     private readonly attendanceService: AttendanceService,
   ) {}
+
+  @Post('clock-in')
+  @Roles('admin', 'hr', 'employee')
+  async clockIn(@Req() req: any) {
+    const employeeId = req.user?.employee;
+    const organizationId = req.user?.organizationId;
+    const attendance = await this.attendanceService.clockIn(employeeId, organizationId);
+    return {
+      success: true,
+      message: 'Clocked in successfully',
+      data: attendance,
+    };
+  }
+
+  @Post('clock-out')
+  @Roles('admin', 'hr', 'employee')
+  async clockOut(@Req() req: any) {
+    const employeeId = req.user?.employee;
+    const attendance = await this.attendanceService.clockOut(employeeId);
+    return {
+      success: true,
+      message: 'Clocked out successfully',
+      data: attendance,
+    };
+  }
+
+  @Get('today')
+  @Roles('admin', 'hr', 'employee')
+  async getToday(@Req() req: any) {
+    const employeeId = req.user?.employee;
+    const organizationId = req.user?.organizationId;
+    const todayData = await this.attendanceService.getToday(employeeId, organizationId);
+    return {
+      success: true,
+      data: todayData,
+    };
+  }
+
+  @Get('late-summary')
+  @Roles('admin', 'hr', 'employee')
+  async getLateSummary(
+    @Req() req: any,
+    @Query('month') month?: string,
+    @Query('year') year?: string,
+  ) {
+    const employeeId = req.user?.employee;
+    const summary = await this.attendanceService.getLateSummary(
+      employeeId,
+      month ? parseInt(month, 10) - 1 : undefined,
+      year ? parseInt(year, 10) : undefined,
+    );
+    return {
+      success: true,
+      data: summary,
+    };
+  }
 
   @Post()
   @Roles('admin', 'hr')

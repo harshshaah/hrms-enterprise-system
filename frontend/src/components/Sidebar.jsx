@@ -8,6 +8,7 @@ import {
   Building2,
   CalendarCheck,
   CalendarDays,
+  Clock,
   Wallet,
   ChartNoAxesCombined,
   Settings,
@@ -53,6 +54,12 @@ const menuItems = [
     name: 'Attendance',
     path: '/attendance',
     icon: CalendarCheck,
+    roles: ['admin', 'hr'],
+  },
+  {
+    name: 'Shifts',
+    path: '/shifts',
+    icon: Clock,
     roles: ['admin', 'hr'],
   },
   {

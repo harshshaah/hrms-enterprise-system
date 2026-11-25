@@ -3,10 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-
-import { Types } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model, Types } from 'mongoose';
 
 import { AttendanceRepository } from './repositories/attendance.repository';
+import { Employee, EmployeeDocument } from '../employee/schemas/employee.schema';
+import { ShiftService } from '../shift/shift.service';
 
 import { CreateAttendanceDto } from './dto/create-attendance.dto';
 import { UpdateAttendanceDto } from './dto/update-attendance.dto';
@@ -15,6 +17,9 @@ import { UpdateAttendanceDto } from './dto/update-attendance.dto';
 export class AttendanceService {
   constructor(
     private readonly attendanceRepository: AttendanceRepository,
+    @InjectModel(Employee.name)
+    private readonly employeeModel: Model<EmployeeDocument>,
+    private readonly shiftService: ShiftService,
   ) {}
 
   async create(
@@ -373,6 +378,190 @@ export class AttendanceService {
     return {
       message:
         'Attendance deleted successfully',
+    };
+  }
+
+  async clockIn(employeeId: string, organizationId?: string) {
+    if (!employeeId) {
+      throw new NotFoundException('Employee ID is required for clock-in');
+    }
+
+    const today = new Date();
+    const existing = await this.attendanceRepository.findByEmployeeAndDate(employeeId, today);
+    if (existing && existing.checkIn) {
+      throw new ConflictException(
+        `Already clocked in today at ${new Date(existing.checkIn).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      );
+    }
+
+    const employee = await this.employeeModel.findById(employeeId).exec();
+    if (!employee) {
+      throw new NotFoundException('Employee profile not found');
+    }
+
+    let shift: any = null;
+    if (employee.shift) {
+      try {
+        shift = await this.shiftService.findOne(employee.shift.toString());
+      } catch (err) {
+        shift = null;
+      }
+    }
+    if (!shift && organizationId) {
+      shift = await this.shiftService.findDefaultOrFirst(organizationId);
+    }
+
+    const now = new Date();
+    let isLate = false;
+    let lateMinutes = 0;
+
+    if (shift && shift.startTime) {
+      const [startHour, startMin] = shift.startTime.split(':').map(Number);
+      const shiftStartTime = new Date(now);
+      shiftStartTime.setHours(startHour, startMin, 0, 0);
+
+      const graceMinutes = shift.gracePeriodMinutes !== undefined ? shift.gracePeriodMinutes : 15;
+      const graceTime = new Date(shiftStartTime.getTime() + graceMinutes * 60 * 1000);
+
+      if (now > graceTime) {
+        isLate = true;
+        lateMinutes = Math.max(0, Math.round((now.getTime() - shiftStartTime.getTime()) / (1000 * 60)));
+      }
+    }
+
+    if (existing) {
+      return this.attendanceRepository.updateById(existing._id.toString(), {
+        checkIn: now,
+        status: 'present',
+        isLate,
+        lateMinutes,
+        shift: shift?._id || existing.shift,
+        clockSource: 'web',
+      });
+    }
+
+    const attendanceData = {
+      employee: new Types.ObjectId(employeeId),
+      organization: organizationId ? new Types.ObjectId(organizationId) : employee.organization || null,
+      shift: shift?._id || null,
+      date: now,
+      checkIn: now,
+      checkOut: null,
+      status: 'present',
+      workingHours: 0,
+      isLate,
+      lateMinutes,
+      clockSource: 'web',
+    };
+
+    return this.attendanceRepository.create(attendanceData);
+  }
+
+  async clockOut(employeeId: string) {
+    if (!employeeId) {
+      throw new NotFoundException('Employee ID is required for clock-out');
+    }
+
+    const today = new Date();
+    const existing = await this.attendanceRepository.findByEmployeeAndDate(employeeId, today);
+    if (!existing || !existing.checkIn) {
+      throw new NotFoundException('No clock-in record found for today. Please clock in first.');
+    }
+
+    if (existing.checkOut) {
+      throw new ConflictException(
+        `Already clocked out today at ${new Date(existing.checkOut).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+      );
+    }
+
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(existing.checkIn).getTime();
+    const workingHours = Number((diffMs / (1000 * 60 * 60)).toFixed(2));
+
+    const shift: any = existing.shift;
+    const halfDayHours = shift?.halfDayHours || 4.5;
+    const fullDayHours = shift?.fullDayHours || 8.5;
+
+    let status = 'present';
+    let isHalfDay = false;
+
+    if (workingHours < halfDayHours) {
+      status = 'half-day';
+      isHalfDay = true;
+    } else if (workingHours < fullDayHours) {
+      status = 'half-day';
+      isHalfDay = true;
+    }
+
+    return this.attendanceRepository.updateById(existing._id.toString(), {
+      checkOut: now,
+      workingHours,
+      status,
+      isHalfDay,
+    });
+  }
+
+  async getToday(employeeId: string, organizationId?: string) {
+    if (!employeeId) {
+      return { attendance: null, shift: null };
+    }
+
+    const today = new Date();
+    const attendance = await this.attendanceRepository.findByEmployeeAndDate(employeeId, today);
+
+    const employee = await this.employeeModel.findById(employeeId).exec();
+    let shift: any = null;
+    if (employee?.shift) {
+      try {
+        shift = await this.shiftService.findOne(employee.shift.toString());
+      } catch (err) {
+        shift = null;
+      }
+    }
+    if (!shift && organizationId) {
+      shift = await this.shiftService.findDefaultOrFirst(organizationId);
+    }
+
+    return {
+      attendance,
+      shift,
+    };
+  }
+
+  async getLateSummary(employeeId: string, month?: number, year?: number) {
+    if (!employeeId) {
+      throw new NotFoundException('Employee ID is required');
+    }
+
+    const currentYear = year || new Date().getFullYear();
+    const currentMonth = month !== undefined ? month : new Date().getMonth();
+
+    const startOfMonth = new Date(currentYear, currentMonth, 1);
+    const endOfMonth = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999);
+
+    const records = await this.attendanceRepository.findWithFilters({
+      employee: employeeId,
+    });
+
+    const monthRecords = records.filter((r) => {
+      const d = new Date(r.date);
+      return d >= startOfMonth && d <= endOfMonth;
+    });
+
+    const lateRecords = monthRecords.filter((r) => r.isLate);
+    const totalLateMarks = lateRecords.length;
+    const totalLateMinutes = lateRecords.reduce((sum, r) => sum + (r.lateMinutes || 0), 0);
+    // Zimyo Standard Late Rule: 3 late marks = 0.5 day deduction
+    const lateDeductionDays = Math.floor(totalLateMarks / 3) * 0.5;
+
+    return {
+      month: currentMonth + 1,
+      year: currentYear,
+      totalDaysPresent: monthRecords.length,
+      totalLateMarks,
+      totalLateMinutes,
+      lateDeductionDays,
+      lateRecords,
     };
   }
 }

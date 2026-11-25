@@ -62,6 +62,14 @@ export class Employee {
 
   @Prop({
     type: Types.ObjectId,
+    ref: 'Shift',
+    default: null,
+    index: true,
+  })
+  shift?: Types.ObjectId | null;
+
+  @Prop({
+    type: Types.ObjectId,
     ref: 'Department',
     required: true,
   })

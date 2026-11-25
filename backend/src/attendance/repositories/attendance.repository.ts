@@ -79,6 +79,7 @@ export class AttendanceRepository {
         'employee',
         'firstName lastName email designation department status',
       )
+      .populate('shift', 'name code startTime endTime gracePeriodMinutes halfDayHours fullDayHours')
       .sort({
         date: -1,
         createdAt: -1,
@@ -163,6 +164,7 @@ export class AttendanceRepository {
         'employee',
         'firstName lastName email designation department status',
       )
+      .populate('shift', 'name code startTime endTime gracePeriodMinutes halfDayHours fullDayHours')
       .exec();
   }
 
@@ -206,6 +208,7 @@ export class AttendanceRepository {
         'employee',
         'firstName lastName email designation department status',
       )
+      .populate('shift', 'name code startTime endTime gracePeriodMinutes halfDayHours fullDayHours')
       .exec();
   }
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, RefreshCw } from "lucide-react";
+import { Loader2, RefreshCw, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { getAttendance } from "../services/attendanceService";
 import { useAuth } from "../context/AuthContext";
+import ClockWidget from "../components/ClockWidget";
 
 function MyAttendance() {
   const { user } = useAuth();
@@ -72,11 +73,14 @@ function MyAttendance() {
 
   return (
     <div className="space-y-6">
+      {/* Live Clock & Shift Status Widget */}
+      <ClockWidget onAttendanceChange={fetchMyAttendance} />
+
       <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Attendance</h1>
+          <h2 className="text-xl font-bold text-gray-900">Attendance Log</h2>
           <p className="mt-1 text-sm text-gray-500">
-            View your daily attendance records.
+            View your daily check-in, check-out and punctuality history.
           </p>
         </div>
 
@@ -103,23 +107,25 @@ function MyAttendance() {
             <thead className="bg-gray-50 text-xs uppercase text-gray-700 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-4 font-semibold">Date</th>
+                <th className="px-6 py-4 font-semibold">Shift</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
                 <th className="px-6 py-4 font-semibold">Check In</th>
                 <th className="px-6 py-4 font-semibold">Check Out</th>
                 <th className="px-6 py-4 font-semibold">Working Hrs</th>
+                <th className="px-6 py-4 font-semibold">Punctuality</th>
                 <th className="px-6 py-4 font-semibold">Remarks</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center">
+                  <td colSpan="8" className="px-6 py-8 text-center">
                     <Loader2 size={24} className="mx-auto animate-spin text-gray-400" />
                   </td>
                 </tr>
               ) : attendance.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="8" className="px-6 py-8 text-center text-gray-500">
                     No attendance records found.
                   </td>
                 </tr>
@@ -128,6 +134,9 @@ function MyAttendance() {
                   <tr key={record._id || record.id} className="hover:bg-gray-50 transition">
                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
                       {formatDate(record.date)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-semibold text-gray-700">
+                      {record.shift?.name || "General"}
                     </td>
                     <td className="px-6 py-4">
                       <span
@@ -144,8 +153,21 @@ function MyAttendance() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {formatTime(record.checkOut)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 font-mono font-medium">
                       {record.workingHours ? `${record.workingHours} hrs` : "-"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {record.isLate ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 border border-amber-200">
+                          <AlertTriangle size={12} /> Late ({record.lateMinutes}m)
+                        </span>
+                      ) : record.checkIn ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 border border-emerald-200">
+                          <CheckCircle2 size={12} /> On Time
+                        </span>
+                      ) : (
+                        "-"
+                      )}
                     </td>
                     <td className="px-6 py-4 max-w-xs truncate text-gray-500">
                       {record.remarks || "-"}

@@ -24,6 +24,7 @@ import Attendance from "../pages/Attendance";
 import AddAttendance from "../pages/AddAttendance";
 import AttendanceDetails from "../pages/AttendanceDetails";
 import EditAttendance from "../pages/EditAttendance";
+import Shifts from "../pages/Shifts";
 
 import Leave from "../pages/Leave";
 import AddLeave from "../pages/AddLeave";
@@ -120,6 +121,7 @@ function AppRoutes() {
             <Route path="/attendance/add" element={<AddAttendance />} />
             <Route path="/attendance/:id" element={<AttendanceDetails />} />
             <Route path="/attendance/:id/edit" element={<EditAttendance />} />
+            <Route path="/shifts" element={<Shifts />} />
 
             {/* Leaves */}
             <Route path="/leaves" element={<Leave />} />

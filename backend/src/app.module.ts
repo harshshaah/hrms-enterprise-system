@@ -36,6 +36,7 @@ import {
 import { SettingsModule } from './settings/settings.module';
 import { EmailModule } from './common/email/email.module';
 import { OrganizationModule } from './organization/organization.module';
+import { ShiftModule } from './shift/shift.module';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { OrganizationModule } from './organization/organization.module';
     SettingsModule,
     EmailModule,
     OrganizationModule,
+    ShiftModule,
   ],
 
   controllers: [

@@ -19,6 +19,22 @@ export class Attendance {
   employee: Types.ObjectId;
 
   @Prop({
+    type: Types.ObjectId,
+    ref: 'Organization',
+    default: null,
+    index: true,
+  })
+  organization?: Types.ObjectId | null;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Shift',
+    default: null,
+    index: true,
+  })
+  shift?: Types.ObjectId | null;
+
+  @Prop({
     required: true,
   })
   date: Date;
@@ -51,6 +67,28 @@ export class Attendance {
     min: 0,
   })
   workingHours: number;
+
+  @Prop({
+    default: false,
+  })
+  isLate: boolean;
+
+  @Prop({
+    default: 0,
+    min: 0,
+  })
+  lateMinutes: number;
+
+  @Prop({
+    default: false,
+  })
+  isHalfDay: boolean;
+
+  @Prop({
+    enum: ['web', 'mobile', 'biometric', 'manual'],
+    default: 'web',
+  })
+  clockSource: string;
 
   @Prop({
     trim: true,

@@ -173,10 +173,26 @@ Authorization: Bearer <accessToken>
 | :--- | :--- | :--- | :--- |
 | `GET` | `/attendance` | `admin`, `hr`, `employee` | Filter attendance (`employee`, `date`, `status`) |
 | `GET` | `/attendance/summary`| `admin`, `hr` | Today's aggregate counts (present, absent, etc.) |
+| `GET` | `/attendance/today` | `admin`, `hr`, `employee` | Current employee's today punch & shift details |
+| `GET` | `/attendance/late-summary` | `admin`, `hr`, `employee` | Monthly late marks count and calculated leave deduction days |
+| `POST` | `/attendance/clock-in` | `admin`, `hr`, `employee` | Clock in with automatic shift grace & late mark evaluation |
+| `POST` | `/attendance/clock-out` | `admin`, `hr`, `employee` | Clock out with auto working hours & half-day calculation |
 | `GET` | `/attendance/:id` | `admin`, `hr`, `employee` | Get single attendance record |
-| `POST` | `/attendance` | `admin`, `hr` | Log attendance record |
+| `POST` | `/attendance` | `admin`, `hr` | Log attendance record manually |
 | `PATCH` | `/attendance/:id` | `admin`, `hr` | Update attendance check-in/out |
 | `DELETE` | `/attendance/:id` | `admin` | Delete attendance record |
+
+---
+
+## 4.1 Shift Management Module (`/shifts`)
+
+| Method | Route | Roles | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/shifts` | `admin`, `hr`, `employee` | List all organization shifts |
+| `GET` | `/shifts/:id` | `admin`, `hr`, `employee` | Retrieve specific shift details |
+| `POST` | `/shifts` | `admin`, `hr` | Create new shift (start/end time, grace buffer, working days) |
+| `PATCH` | `/shifts/:id` | `admin`, `hr` | Update shift parameters |
+| `DELETE` | `/shifts/:id` | `admin` | Remove shift |
 
 ### Create Attendance Payload:
 ```json

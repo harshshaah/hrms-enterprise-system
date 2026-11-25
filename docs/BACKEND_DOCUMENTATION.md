@@ -40,6 +40,8 @@ The backend service is engineered using **NestJS 12** running on Node.js and Typ
 | :--- | :--- | :--- | :--- | :--- |
 | **`AuthModule`** | `AuthController` | `AuthService` | `UserSchema` | Registration, login, password resets, JWT strategy |
 | **`UserModule`** | `UserController` | `UserService` | `UserSchema`, `EmployeeSchema` | User profiles, role changes, activations |
+| **`OrganizationModule`**| `OrganizationController`| `OrganizationService`| `OrganizationSchema` | Multi-tenant company workspaces, trial tracking, SaaS plans |
+| **`ShiftModule`** | `ShiftController` | `ShiftService` | `ShiftSchema` | Work shifts (timings, grace buffer, half-day/full-day thresholds, late deduction rules) |
 | **`EmployeeModule`** | `EmployeeController` | `EmployeeService` | `EmployeeRepository`, `EmployeeSchema` | Employee profiles, salary details, onboarding rollback |
 | **`DepartmentModule`** | `DepartmentController`| `DepartmentService` | `DepartmentSchema` | Department codes, organization structure |
 | **`AttendanceModule`** | `AttendanceController`| `AttendanceService` | `AttendanceRepository`, `AttendanceSchema` | Clock-in/out, hours computation, daily counters |

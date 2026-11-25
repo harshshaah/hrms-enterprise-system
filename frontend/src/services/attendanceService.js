@@ -108,3 +108,27 @@ export const getAttendanceSummary =
       }`,
     );
   };
+
+export const clockIn = async () => {
+  return apiRequest("/attendance/clock-in", {
+    method: "POST",
+  });
+};
+
+export const clockOut = async () => {
+  return apiRequest("/attendance/clock-out", {
+    method: "POST",
+  });
+};
+
+export const getTodayAttendance = async () => {
+  return apiRequest("/attendance/today");
+};
+
+export const getLateSummary = async (month, year) => {
+  const params = new URLSearchParams();
+  if (month) params.append("month", month);
+  if (year) params.append("year", year);
+  const qs = params.toString();
+  return apiRequest(`/attendance/late-summary${qs ? `?${qs}` : ""}`);
+};
