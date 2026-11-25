@@ -160,3 +160,10 @@ export const getEmployeesForPayroll =
         "active",
     );
   };
+
+export const calculateStatutoryPayroll = async (payload) => {
+  return apiRequest("/payroll/calculate-statutory", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+};

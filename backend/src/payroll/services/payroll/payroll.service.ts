@@ -32,6 +32,7 @@ export class PayrollService {
 
   async create(
     createPayrollDto: CreatePayrollDto,
+    organizationId?: string,
   ) {
     const {
       employee,
@@ -85,7 +86,18 @@ export class PayrollService {
         year,
         basicSalary,
         allowances,
+        hra: createPayrollDto.hra || 0,
+        conveyanceAllowance: createPayrollDto.conveyanceAllowance || 0,
+        specialAllowance: createPayrollDto.specialAllowance || 0,
         deductions,
+        epfEmployee: createPayrollDto.epfEmployee || 0,
+        epfEmployer: createPayrollDto.epfEmployer || 0,
+        esicEmployee: createPayrollDto.esicEmployee || 0,
+        esicEmployer: createPayrollDto.esicEmployer || 0,
+        professionalTax: createPayrollDto.professionalTax || 0,
+        tds: createPayrollDto.tds || 0,
+        lateDeduction: createPayrollDto.lateDeduction || 0,
+        organization: organizationId ? new Types.ObjectId(organizationId) : null,
         grossSalary,
         netSalary,
         status:
@@ -333,5 +345,72 @@ export class PayrollService {
 
   async getStats() {
     return this.payrollRepository.getPayrollStats();
+  }
+
+  calculateStatutory(grossSalary: number, options?: { state?: string; capPfAt1800?: boolean; tds?: number; lateDeductionDays?: number }) {
+    const gross = Number(grossSalary) || 0;
+    const basicSalary = Math.round(gross * 0.50);
+    const hra = Math.round(gross * 0.20);
+    const conveyanceAllowance = gross > 15000 ? 1600 : Math.round(gross * 0.05);
+    const specialAllowance = Math.max(0, gross - (basicSalary + hra + conveyanceAllowance));
+    const allowances = hra + conveyanceAllowance + specialAllowance;
+
+    // EPF (12% of Basic, standard cap at 1,800 if basic > 15,000)
+    let epfEmployee = 0;
+    let epfEmployer = 0;
+    if (basicSalary > 0) {
+      if (options?.capPfAt1800 !== false && basicSalary > 15000) {
+        epfEmployee = 1800;
+        epfEmployer = 1800;
+      } else {
+        epfEmployee = Math.round(basicSalary * 0.12);
+        epfEmployer = Math.round(basicSalary * 0.12);
+      }
+    }
+
+    // ESIC (if gross <= 21,000: 0.75% employee + 3.25% employer)
+    let esicEmployee = 0;
+    let esicEmployer = 0;
+    if (gross <= 21000 && gross > 0) {
+      esicEmployee = Math.ceil(gross * 0.0075);
+      esicEmployer = Math.ceil(gross * 0.0325);
+    }
+
+    // Professional Tax (Standard Indian Slabs)
+    let professionalTax = 0;
+    if (gross > 10000) {
+      professionalTax = 200;
+    } else if (gross > 7500) {
+      professionalTax = 175;
+    }
+
+    const tds = Number(options?.tds) || 0;
+
+    let lateDeduction = 0;
+    if (options?.lateDeductionDays && options.lateDeductionDays > 0) {
+      const perDaySalary = gross / 30;
+      lateDeduction = Math.round(perDaySalary * options.lateDeductionDays);
+    }
+
+    const totalDeductions = epfEmployee + esicEmployee + professionalTax + tds + lateDeduction;
+    const netSalary = Math.max(0, gross - totalDeductions);
+
+    return {
+      basicSalary,
+      hra,
+      conveyanceAllowance,
+      specialAllowance,
+      allowances,
+      grossSalary: gross,
+      epfEmployee,
+      epfEmployer,
+      esicEmployee,
+      esicEmployer,
+      professionalTax,
+      tds,
+      lateDeduction,
+      deductions: totalDeductions,
+      netSalary,
+    };
   }
 }

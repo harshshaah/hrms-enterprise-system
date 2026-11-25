@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 
@@ -53,10 +54,13 @@ export class PayrollController {
   async create(
     @Body()
     createPayrollDto: CreatePayrollDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const data =
       await this.payrollService.create(
         createPayrollDto,
+        orgId,
       );
 
     return {
@@ -64,6 +68,22 @@ export class PayrollController {
       message:
         'Payroll created successfully.',
       data,
+    };
+  }
+
+  @Post('calculate-statutory')
+  @Roles('admin', 'hr')
+  async calculateStatutory(@Body() body: any) {
+    const result = this.payrollService.calculateStatutory(body.grossSalary, {
+      capPfAt1800: body.capPfAt1800,
+      tds: body.tds,
+      lateDeductionDays: body.lateDeductionDays,
+      state: body.state,
+    });
+
+    return {
+      success: true,
+      data: result,
     };
   }
 

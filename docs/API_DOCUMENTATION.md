@@ -230,7 +230,8 @@ Authorization: Bearer <accessToken>
 | `GET` | `/payroll` | `admin`, `hr`, `employee` | Query paginated payroll ledger |
 | `GET` | `/payroll/stats` | `admin`, `hr` | Total salary metrics & paid/unpaid totals |
 | `GET` | `/payroll/:id` | `admin`, `hr`, `employee` | View single payslip |
-| `POST` | `/payroll` | `admin`, `hr` | Generate payroll entry |
+| `POST` | `/payroll` | `admin`, `hr` | Generate payroll entry (with Indian statutory parameters) |
+| `POST` | `/payroll/calculate-statutory` | `admin`, `hr` | Auto-calculate EPF (12%), ESIC (0.75%), PT, HRA, & late deduction |
 | `PATCH` | `/payroll/:id` | `admin`, `hr` | Modify allowance/deduction |
 | `PATCH` | `/payroll/:id/pay` | `admin`, `hr` | Mark payroll as paid with timestamp |
 | `PATCH` | `/payroll/:id/cancel`| `admin`, `hr` | Cancel pending payroll |

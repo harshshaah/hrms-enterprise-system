@@ -34,7 +34,57 @@ export class CreatePayrollDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
+  hra?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  conveyanceAllowance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  specialAllowance?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
   deductions?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  epfEmployee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  epfEmployer?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  esicEmployee?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  esicEmployer?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  professionalTax?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  tds?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  lateDeduction?: number;
 
   @IsOptional()
   @IsString()

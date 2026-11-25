@@ -9,6 +9,7 @@ import {
   CheckCircle,
   Clock,
   DollarSign,
+  Printer,
   User,
   XCircle,
 } from "lucide-react";
@@ -250,17 +251,28 @@ const PayrollDetails = () => {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() =>
-            navigate(
-              `/payroll/${payroll._id}/edit`,
-            )
-          }
-          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
-        >
-          Edit Payroll
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 print:hidden"
+          >
+            <Printer size={16} />
+            Print Payslip
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                `/payroll/${payroll._id}/edit`,
+              )
+            }
+            className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 print:hidden"
+          >
+            Edit Payroll
+          </button>
+        </div>
       </div>
 
       {/* Employee Information */}
@@ -395,81 +407,111 @@ const PayrollDetails = () => {
         </div>
       </div>
 
-      {/* Salary Breakdown */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <div className="mb-5 flex items-center gap-2">
-          <DollarSign
-            size={20}
-            className="text-blue-600"
-          />
-
-          <h2 className="text-lg font-semibold text-gray-900">
-            Salary Breakdown
-          </h2>
+      {/* Indian Statutory Salary Slip Breakdown */}
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm print:border-none print:shadow-none">
+        <div className="mb-5 flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="flex items-center gap-2">
+            <DollarSign size={20} className="text-blue-600" />
+            <h2 className="text-lg font-bold text-gray-900">
+              Payslip Breakdown (INR)
+            </h2>
+          </div>
+          <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
+            Zimyo Statutory Ledger
+          </span>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <span className="text-sm text-gray-600">
-              Basic Salary
-            </span>
-
-            <span className="font-medium text-gray-900">
-              {formatCurrency(
-                payroll.basicSalary,
-              )}
-            </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Earnings Column */}
+          <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-emerald-800 border-b border-emerald-100 pb-2 mb-3">
+              Gross Earnings
+            </h3>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between text-gray-700">
+                <span>Basic Salary (50%)</span>
+                <span className="font-mono font-medium">{formatCurrency(payroll.basicSalary)}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>House Rent Allowance (HRA)</span>
+                <span className="font-mono font-medium">{formatCurrency(payroll.hra || Math.round(payroll.basicSalary * 0.4))}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Conveyance Allowance</span>
+                <span className="font-mono font-medium">{formatCurrency(payroll.conveyanceAllowance || 1600)}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Special Allowance</span>
+                <span className="font-mono font-medium">{formatCurrency(payroll.specialAllowance || Math.max(0, payroll.allowances - (payroll.hra || 0) - (payroll.conveyanceAllowance || 0)))}</span>
+              </div>
+              <div className="flex justify-between font-bold text-emerald-900 pt-3 border-t border-gray-200">
+                <span>Total Gross Earnings</span>
+                <span className="font-mono text-base">{formatCurrency(payroll.grossSalary)}</span>
+              </div>
+            </div>
           </div>
 
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <span className="text-sm text-gray-600">
-              Allowances
-            </span>
-
-            <span className="font-medium text-green-600">
-              +{" "}
-              {formatCurrency(
-                payroll.allowances,
+          {/* Deductions Column */}
+          <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+            <h3 className="font-bold text-xs uppercase tracking-wider text-rose-800 border-b border-rose-100 pb-2 mb-3">
+              Statutory Deductions
+            </h3>
+            <div className="space-y-2.5 text-sm">
+              <div className="flex justify-between text-gray-700">
+                <span>Employee PF (12%)</span>
+                <span className="font-mono text-red-600 font-medium">-{formatCurrency(payroll.epfEmployee || Math.min(1800, Math.round(payroll.basicSalary * 0.12)))}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Employee ESIC (0.75%)</span>
+                <span className="font-mono text-red-600 font-medium">-{formatCurrency(payroll.esicEmployee || (payroll.grossSalary <= 21000 ? Math.ceil(payroll.grossSalary * 0.0075) : 0))}</span>
+              </div>
+              <div className="flex justify-between text-gray-700">
+                <span>Professional Tax (PT)</span>
+                <span className="font-mono text-red-600 font-medium">-{formatCurrency(payroll.professionalTax || (payroll.grossSalary > 10000 ? 200 : 0))}</span>
+              </div>
+              {Boolean(payroll.tds) && (
+                <div className="flex justify-between text-gray-700">
+                  <span>TDS / Income Tax</span>
+                  <span className="font-mono text-red-600 font-medium">-{formatCurrency(payroll.tds)}</span>
+                </div>
               )}
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <span className="text-sm font-medium text-gray-700">
-              Gross Salary
-            </span>
-
-            <span className="font-semibold text-gray-900">
-              {formatCurrency(
-                payroll.grossSalary,
+              {Boolean(payroll.lateDeduction) && (
+                <div className="flex justify-between text-gray-700">
+                  <span>Late Marks / Attendance Deduction</span>
+                  <span className="font-mono text-red-600 font-medium">-{formatCurrency(payroll.lateDeduction)}</span>
+                </div>
               )}
-            </span>
+              <div className="flex justify-between font-bold text-rose-900 pt-3 border-t border-gray-200">
+                <span>Total Deductions</span>
+                <span className="font-mono text-base">-{formatCurrency(payroll.deductions)}</span>
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-            <span className="text-sm text-gray-600">
-              Deductions
-            </span>
+        {/* Employer Statutory Contribution Bar */}
+        <div className="mt-4 rounded-lg bg-slate-50 border border-slate-200 p-3 text-xs text-slate-600 flex flex-col sm:flex-row justify-between gap-2">
+          <span>
+            Employer PF Share (12%): <strong className="text-slate-800">{formatCurrency(payroll.epfEmployer || Math.min(1800, Math.round(payroll.basicSalary * 0.12)))}</strong> (EPS 8.33% + EPF 3.67%)
+          </span>
+          <span>
+            Employer ESIC Share (3.25%): <strong className="text-slate-800">{formatCurrency(payroll.esicEmployer || (payroll.grossSalary <= 21000 ? Math.ceil(payroll.grossSalary * 0.0325) : 0))}</strong>
+          </span>
+        </div>
 
-            <span className="font-medium text-red-600">
-              -{" "}
-              {formatCurrency(
-                payroll.deductions,
-              )}
+        {/* Net Salary Payable */}
+        <div className="mt-5 flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-4 text-white shadow-md">
+          <div>
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-100">
+              Net Payable (Take Home)
             </span>
+            <p className="text-2xl font-extrabold font-mono mt-0.5">
+              {formatCurrency(payroll.netSalary)}
+            </p>
           </div>
-
-          <div className="flex items-center justify-between rounded-lg bg-blue-50 px-4 py-4">
-            <span className="font-semibold text-blue-900">
-              Net Salary
-            </span>
-
-            <span className="text-xl font-bold text-blue-700">
-              {formatCurrency(
-                payroll.netSalary,
-              )}
-            </span>
-          </div>
+          <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase tracking-wider">
+            {payroll.status}
+          </span>
         </div>
       </div>
 

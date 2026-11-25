@@ -8,6 +8,8 @@ import {
   ArrowLeft,
   Calculator,
   Save,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 
 import {
@@ -17,6 +19,7 @@ import {
 import {
   createPayroll,
   getEmployeesForPayroll,
+  calculateStatutoryPayroll,
 } from "../services/payrollService";
 
 const AddPayroll = () => {
@@ -51,9 +54,21 @@ const AddPayroll = () => {
     year: new Date().getFullYear(),
     basicSalary: "",
     allowances: "",
+    hra: "",
+    conveyanceAllowance: "",
+    specialAllowance: "",
     deductions: "",
+    epfEmployee: "",
+    epfEmployer: "",
+    esicEmployee: "",
+    esicEmployer: "",
+    professionalTax: "",
+    tds: "",
+    lateDeduction: "",
     remarks: "",
   });
+
+  const [statutoryPreview, setStatutoryPreview] = useState(null);
 
   const [
     fieldErrors,
@@ -103,6 +118,43 @@ const AddPayroll = () => {
     );
 
     setError("");
+  };
+
+  const handleAutoCalculateStatutory = async () => {
+    const selectedEmp = employees.find((e) => e._id === formData.employee);
+    if (!selectedEmp) {
+      setError("Please select an employee first.");
+      return;
+    }
+    const gross = selectedEmp.salary || Number(formData.basicSalary) || 50000;
+    try {
+      const res = await calculateStatutoryPayroll({
+        grossSalary: gross,
+      });
+      if (res?.data) {
+        const d = res.data;
+        setFormData((prev) => ({
+          ...prev,
+          basicSalary: d.basicSalary,
+          allowances: d.allowances,
+          hra: d.hra,
+          conveyanceAllowance: d.conveyanceAllowance,
+          specialAllowance: d.specialAllowance,
+          deductions: d.deductions,
+          epfEmployee: d.epfEmployee,
+          epfEmployer: d.epfEmployer,
+          esicEmployee: d.esicEmployee,
+          esicEmployer: d.esicEmployer,
+          professionalTax: d.professionalTax,
+          tds: d.tds,
+          lateDeduction: d.lateDeduction,
+        }));
+        setStatutoryPreview(d);
+        setError("");
+      }
+    } catch (err) {
+      setError(err?.message || "Failed to auto-calculate statutory payroll");
+    }
   };
 
   const grossSalary = useMemo(() => {
@@ -229,9 +281,21 @@ const AddPayroll = () => {
           formData.allowances || 0,
         ),
 
+        hra: Number(formData.hra || 0),
+        conveyanceAllowance: Number(formData.conveyanceAllowance || 0),
+        specialAllowance: Number(formData.specialAllowance || 0),
+
         deductions: Number(
           formData.deductions || 0,
         ),
+
+        epfEmployee: Number(formData.epfEmployee || 0),
+        epfEmployer: Number(formData.epfEmployer || 0),
+        esicEmployee: Number(formData.esicEmployee || 0),
+        esicEmployer: Number(formData.esicEmployer || 0),
+        professionalTax: Number(formData.professionalTax || 0),
+        tds: Number(formData.tds || 0),
+        lateDeduction: Number(formData.lateDeduction || 0),
 
         remarks:
           formData.remarks.trim(),
@@ -491,6 +555,64 @@ const AddPayroll = () => {
             </div>
           </div>
         </div>
+
+        {/* Statutory Engine Banner */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-5 rounded-xl bg-blue-50/80 border border-blue-200">
+          <div>
+            <h3 className="text-sm font-bold text-blue-900 flex items-center gap-1.5">
+              <Sparkles size={16} className="text-blue-600" />
+              Zimyo Indian Statutory Payroll Engine
+            </h3>
+            <p className="text-xs text-blue-700 mt-1">
+              Automatically split CTC into Basic (50%), HRA (20%), and calculate EPF (12%), ESIC (0.75%), and PT.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={handleAutoCalculateStatutory}
+            disabled={!formData.employee}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap self-start sm:self-auto"
+          >
+            <Calculator size={14} />
+            ⚡ Auto-Calculate Statutory Structure
+          </button>
+        </div>
+
+        {statutoryPreview && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-5 space-y-3">
+            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs uppercase tracking-wider">
+              <CheckCircle2 size={16} className="text-emerald-600" />
+              Indian Statutory Breakdown Applied
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+              <div>
+                <span className="text-gray-500 block">Basic (50%):</span>
+                <strong className="text-gray-900 font-mono text-sm">{formatCurrency(statutoryPreview.basicSalary)}</strong>
+              </div>
+              <div>
+                <span className="text-gray-500 block">HRA (20%):</span>
+                <strong className="text-gray-900 font-mono text-sm">{formatCurrency(statutoryPreview.hra)}</strong>
+              </div>
+              <div>
+                <span className="text-gray-500 block">EPF Employee (12%):</span>
+                <strong className="text-red-600 font-mono text-sm">-{formatCurrency(statutoryPreview.epfEmployee)}</strong>
+              </div>
+              <div>
+                <span className="text-gray-500 block">Professional Tax:</span>
+                <strong className="text-red-600 font-mono text-sm">-{formatCurrency(statutoryPreview.professionalTax)}</strong>
+              </div>
+            </div>
+            {statutoryPreview.esicEmployee > 0 && (
+              <div className="text-[11px] text-emerald-700">
+                ESIC applied: Employee (0.75%): {formatCurrency(statutoryPreview.esicEmployee)} | Employer (3.25%): {formatCurrency(statutoryPreview.esicEmployer)}
+              </div>
+            )}
+            <div className="text-[11px] text-gray-500 pt-1 border-t border-emerald-200/60 flex justify-between">
+              <span>Employer EPF Share (12%): {formatCurrency(statutoryPreview.epfEmployer)}</span>
+              <span className="font-bold text-emerald-900">Take-Home Net: {formatCurrency(statutoryPreview.netSalary)}</span>
+            </div>
+          </div>
+        )}
 
         {/* Salary Details */}
         <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">

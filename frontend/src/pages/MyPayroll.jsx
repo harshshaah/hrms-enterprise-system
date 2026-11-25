@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, RefreshCw, FileText } from "lucide-react";
+import { Loader2, RefreshCw, FileText, Printer, X, DollarSign, CheckCircle2 } from "lucide-react";
 import { getPayrolls } from "../services/payrollService";
 import { useAuth } from "../context/AuthContext";
 
@@ -8,6 +8,7 @@ function MyPayroll() {
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedPayroll, setSelectedPayroll] = useState(null);
 
   const fetchMyPayroll = async () => {
     try {
@@ -102,18 +103,19 @@ function MyPayroll() {
                 <th className="px-6 py-4 font-semibold">Deductions</th>
                 <th className="px-6 py-4 font-semibold">Net Salary</th>
                 <th className="px-6 py-4 font-semibold">Status</th>
+                <th className="px-6 py-4 font-semibold">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center">
+                  <td colSpan="7" className="px-6 py-8 text-center">
                     <Loader2 size={24} className="mx-auto animate-spin text-gray-400" />
                   </td>
                 </tr>
               ) : payrolls.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan="7" className="px-6 py-8 text-center text-gray-500">
                     No payroll records found.
                   </td>
                 </tr>
@@ -121,7 +123,7 @@ function MyPayroll() {
                 payrolls.map((payroll) => (
                   <tr key={payroll._id || payroll.id} className="hover:bg-gray-50 transition">
                     <td className="px-6 py-4 whitespace-nowrap text-gray-900 font-medium">
-                      {payroll.month} {payroll.year}
+                      {payroll.month}/{payroll.year}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {formatCurrency(payroll.basicSalary)}
@@ -138,6 +140,16 @@ function MyPayroll() {
                     <td className="px-6 py-4">
                       {getStatusBadge(payroll.status)}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedPayroll(payroll)}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100 transition"
+                      >
+                        <FileText size={14} />
+                        View Slip
+                      </button>
+                    </td>
                   </tr>
                 ))
               )}
@@ -145,6 +157,130 @@ function MyPayroll() {
           </table>
         </div>
       </div>
+
+      {/* Payslip Modal */}
+      {selectedPayroll && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  Salary Slip - {selectedPayroll.month}/{selectedPayroll.year}
+                </h3>
+                <p className="text-xs text-gray-500">
+                  {user?.firstName} {user?.lastName} &bull; Indian Statutory Format
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                  title="Print Slip"
+                >
+                  <Printer size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPayroll(null)}
+                  className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Earnings */}
+                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                  <h4 className="font-bold text-xs uppercase text-emerald-800 border-b border-emerald-100 pb-2 mb-3">
+                    Earnings
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Basic Salary (50%)</span>
+                      <strong className="font-mono">{formatCurrency(selectedPayroll.basicSalary)}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">HRA</span>
+                      <strong className="font-mono">{formatCurrency(selectedPayroll.hra || Math.round(selectedPayroll.basicSalary * 0.4))}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Conveyance</span>
+                      <strong className="font-mono">{formatCurrency(selectedPayroll.conveyanceAllowance || 1600)}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Special Allowance</span>
+                      <strong className="font-mono">{formatCurrency(selectedPayroll.specialAllowance || Math.max(0, selectedPayroll.allowances - (selectedPayroll.hra || 0) - (selectedPayroll.conveyanceAllowance || 0)))}</strong>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t font-bold text-emerald-900">
+                      <span>Gross Salary</span>
+                      <span className="font-mono">{formatCurrency(selectedPayroll.grossSalary)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Deductions */}
+                <div className="border border-gray-200 rounded-xl p-4 bg-gray-50/50">
+                  <h4 className="font-bold text-xs uppercase text-rose-800 border-b border-rose-100 pb-2 mb-3">
+                    Deductions
+                  </h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">EPF Employee (12%)</span>
+                      <strong className="font-mono text-rose-600">-{formatCurrency(selectedPayroll.epfEmployee || Math.min(1800, Math.round(selectedPayroll.basicSalary * 0.12)))}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">ESIC Employee (0.75%)</span>
+                      <strong className="font-mono text-rose-600">-{formatCurrency(selectedPayroll.esicEmployee || (selectedPayroll.grossSalary <= 21000 ? Math.ceil(selectedPayroll.grossSalary * 0.0075) : 0))}</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Professional Tax (PT)</span>
+                      <strong className="font-mono text-rose-600">-{formatCurrency(selectedPayroll.professionalTax || (selectedPayroll.grossSalary > 10000 ? 200 : 0))}</strong>
+                    </div>
+                    {Boolean(selectedPayroll.lateDeduction) && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Late Attendance Penalty</span>
+                        <strong className="font-mono text-rose-600">-{formatCurrency(selectedPayroll.lateDeduction)}</strong>
+                      </div>
+                    )}
+                    <div className="flex justify-between pt-2 border-t font-bold text-rose-900">
+                      <span>Total Deductions</span>
+                      <span className="font-mono">-{formatCurrency(selectedPayroll.deductions)}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Net Take-Home */}
+              <div className="flex items-center justify-between rounded-xl bg-gradient-to-r from-emerald-600 to-teal-700 px-5 py-4 text-white">
+                <div>
+                  <span className="text-[11px] font-semibold uppercase text-emerald-100">
+                    Net Take-Home Salary
+                  </span>
+                  <p className="text-xl font-bold font-mono">
+                    {formatCurrency(selectedPayroll.netSalary)}
+                  </p>
+                </div>
+                <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold uppercase">
+                  {selectedPayroll.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-5 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setSelectedPayroll(null)}
+                className="rounded-lg bg-gray-100 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

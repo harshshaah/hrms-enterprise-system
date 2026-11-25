@@ -45,11 +45,49 @@ export class Payroll {
   })
   allowances: number;
 
+  @Prop({ default: 0, min: 0 })
+  hra: number;
+
+  @Prop({ default: 0, min: 0 })
+  conveyanceAllowance: number;
+
+  @Prop({ default: 0, min: 0 })
+  specialAllowance: number;
+
   @Prop({
     default: 0,
     min: 0,
   })
   deductions: number;
+
+  @Prop({ default: 0, min: 0 })
+  epfEmployee: number;
+
+  @Prop({ default: 0, min: 0 })
+  epfEmployer: number;
+
+  @Prop({ default: 0, min: 0 })
+  esicEmployee: number;
+
+  @Prop({ default: 0, min: 0 })
+  esicEmployer: number;
+
+  @Prop({ default: 0, min: 0 })
+  professionalTax: number;
+
+  @Prop({ default: 0, min: 0 })
+  tds: number;
+
+  @Prop({ default: 0, min: 0 })
+  lateDeduction: number;
+
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Organization',
+    default: null,
+    index: true,
+  })
+  organization?: Types.ObjectId | null;
 
   @Prop({
     required: true,
