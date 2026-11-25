@@ -35,6 +35,7 @@ import {
 } from './report/report.module';
 import { SettingsModule } from './settings/settings.module';
 import { EmailModule } from './common/email/email.module';
+import { OrganizationModule } from './organization/organization.module';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { EmailModule } from './common/email/email.module';
     ReportModule,
     SettingsModule,
     EmailModule,
+    OrganizationModule,
   ],
 
   controllers: [

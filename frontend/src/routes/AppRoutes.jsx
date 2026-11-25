@@ -4,6 +4,7 @@ import DashboardLayout from "../layouts/DashboardLayout";
 import ProtectedRoute from "./ProtectedRoute";
 
 import Login from "../pages/Login";
+import RegisterCompany from "../pages/RegisterCompany";
 import ForgotPassword from "../pages/ForgotPassword";
 import ResetPassword from "../pages/ResetPassword";
 
@@ -66,6 +67,7 @@ function AppRoutes() {
     <Routes>
       {/* Auth Routes */}
       <Route path="/login" element={<Login />} />
+      <Route path="/register-company" element={<RegisterCompany />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
 

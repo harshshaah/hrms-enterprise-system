@@ -24,12 +24,23 @@ import {
 } from '../user/schemas/user.schema';
 
 import {
+  Organization,
+  OrganizationDocument,
+  SubscriptionPlan,
+  SubscriptionStatus,
+} from '../organization/schemas/organization.schema';
+
+import {
   LoginDto,
 } from './dto/login.dto';
 
 import {
   RegisterDto,
 } from './dto/register.dto';
+
+import {
+  RegisterCompanyDto,
+} from './dto/register-company.dto';
 
 import { EmailService } from '../common/email/email.service';
 
@@ -39,6 +50,10 @@ export class AuthService {
     @InjectModel(User.name)
     private readonly userModel:
       Model<UserDocument>,
+
+    @InjectModel(Organization.name)
+    private readonly orgModel:
+      Model<OrganizationDocument>,
 
     private readonly jwtService:
       JwtService,
@@ -120,6 +135,83 @@ export class AuthService {
     };
   }
 
+  async registerCompany(dto: RegisterCompanyDto) {
+    const slug = dto.companySlug.toLowerCase().trim();
+    const existingOrg = await this.orgModel.findOne({ slug }).exec();
+    if (existingOrg) {
+      throw new ConflictException('An organization with this company URL/slug already exists');
+    }
+
+    const email = dto.email.toLowerCase().trim();
+    const existingUser = await this.userModel.findOne({ email }).exec();
+    if (existingUser) {
+      throw new ConflictException('A user with this email already exists');
+    }
+
+    const trialEndsAt = new Date();
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14);
+
+    const org = new this.orgModel({
+      name: dto.companyName.trim(),
+      slug,
+      email,
+      phone: dto.phone,
+      employeeCountRange: dto.employeeCountRange || '1-10',
+      subscription: {
+        plan: SubscriptionPlan.FREE,
+        status: SubscriptionStatus.TRIAL,
+        maxEmployees: 15,
+        trialEndsAt,
+      },
+      status: 'active',
+    });
+
+    const savedOrg = await org.save();
+
+    const hashedPassword = await bcrypt.hash(dto.password, 10);
+    const user = new this.userModel({
+      firstName: dto.firstName.trim(),
+      lastName: dto.lastName.trim(),
+      email,
+      password: hashedPassword,
+      role: 'admin',
+      status: 'active',
+      organization: savedOrg._id,
+      employee: null,
+    });
+
+    const savedUser = await user.save();
+
+    const payload = {
+      sub: savedUser._id.toString(),
+      email: savedUser.email,
+      role: savedUser.role,
+      organization: savedOrg._id.toString(),
+    };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    return {
+      accessToken,
+      user: {
+        id: savedUser._id,
+        firstName: savedUser.firstName,
+        lastName: savedUser.lastName,
+        email: savedUser.email,
+        role: savedUser.role,
+        status: savedUser.status,
+        organization: savedOrg._id,
+      },
+      organization: {
+        id: savedOrg._id,
+        name: savedOrg.name,
+        slug: savedOrg.slug,
+        plan: savedOrg.subscription?.plan,
+        trialEndsAt: savedOrg.subscription?.trialEndsAt,
+      },
+    };
+  }
+
   async login(
     loginDto: LoginDto,
   ) {
@@ -129,6 +221,7 @@ export class AuthService {
     const user =
       await this.userModel
         .findOne({ email })
+        .populate('organization')
         .exec();
 
     if (!user) {
@@ -158,6 +251,10 @@ export class AuthService {
       );
     }
 
+    const orgId = user.organization
+      ? ((user.organization as any)._id || user.organization).toString()
+      : null;
+
     const payload = {
       sub:
         user._id.toString(),
@@ -167,6 +264,9 @@ export class AuthService {
 
       role:
         user.role,
+
+      organization:
+        orgId,
     };
 
     const accessToken =
@@ -198,6 +298,9 @@ export class AuthService {
 
         employee:
           user.employee,
+
+        organization:
+          user.organization || null,
       },
     };
   }

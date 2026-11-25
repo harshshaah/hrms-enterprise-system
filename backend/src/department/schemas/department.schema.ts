@@ -1,5 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument } from 'mongoose';
+import { HydratedDocument, Types } from 'mongoose';
 
 export type DepartmentDocument =
   HydratedDocument<Department>;
@@ -8,6 +8,14 @@ export type DepartmentDocument =
   timestamps: true,
 })
 export class Department {
+  @Prop({
+    type: Types.ObjectId,
+    ref: 'Organization',
+    default: null,
+    index: true,
+  })
+  organization?: Types.ObjectId | null;
+
   @Prop({
     required: true,
     trim: true,

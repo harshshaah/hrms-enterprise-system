@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
+import { RegisterCompanyDto } from './dto/register-company.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('auth')
@@ -16,6 +17,18 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
   ) {}
+
+  @Post('register-company')
+  async registerCompany(
+    @Body() registerCompanyDto: RegisterCompanyDto,
+  ) {
+    const result = await this.authService.registerCompany(registerCompanyDto);
+    return {
+      success: true,
+      message: 'Company registered successfully with 14-day free trial',
+      data: result,
+    };
+  }
 
   @Post('register')
   async register(

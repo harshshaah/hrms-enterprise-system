@@ -64,6 +64,43 @@ export const registerUser = async (registerData) => {
   return data;
 };
 
+export const registerCompany = async (companyData) => {
+  const response = await fetch(
+    `${API_BASE_URL}/auth/register-company`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(companyData),
+    },
+  );
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(
+      data?.message || "Company registration failed",
+    );
+  }
+
+  if (data?.data?.accessToken) {
+    localStorage.setItem(
+      TOKEN_KEY,
+      data.data.accessToken,
+    );
+  }
+
+  if (data?.data?.user) {
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify(data.data.user),
+    );
+  }
+
+  return data;
+};
+
 export const getAccessToken = () => {
   return localStorage.getItem(TOKEN_KEY);
 };

@@ -54,6 +54,14 @@ export class Employee {
 
   @Prop({
     type: Types.ObjectId,
+    ref: 'Organization',
+    default: null,
+    index: true,
+  })
+  organization?: Types.ObjectId | null;
+
+  @Prop({
+    type: Types.ObjectId,
     ref: 'Department',
     required: true,
   })

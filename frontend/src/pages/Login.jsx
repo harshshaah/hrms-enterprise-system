@@ -183,6 +183,18 @@ function Login() {
                 : "Sign In"}
             </button>
           </form>
+
+          <div className="mt-6 border-t border-slate-100 pt-5 text-center">
+            <p className="text-xs text-slate-500">
+              Want to use HRMS for your company?
+            </p>
+            <Link
+              to="/register-company"
+              className="mt-1.5 inline-block text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline"
+            >
+              Register Organization / 14-Day Free Trial &rarr;
+            </Link>
+          </div>
         </div>
 
         <p className="mt-6 text-center text-xs text-slate-400">

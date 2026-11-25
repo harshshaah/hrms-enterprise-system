@@ -20,6 +20,10 @@ import {
 } from '../user/user.module';
 
 import {
+  OrganizationModule,
+} from '../organization/organization.module';
+
+import {
   AuthController,
 } from './auth.controller';
 
@@ -40,6 +44,7 @@ import {
     ConfigModule,
 
     UserModule,
+    OrganizationModule,
 
     PassportModule.register({
       defaultStrategy: 'jwt',

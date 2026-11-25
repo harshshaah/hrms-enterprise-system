@@ -204,9 +204,16 @@ function Navbar() {
       <div className="flex h-full items-center justify-between px-6">
         {/* Left */}
         <div>
-          <h1 className="text-lg font-semibold text-slate-900">
-            HRMS
-          </h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold text-slate-900">
+              {user?.organization?.name || "HRMS"}
+            </h1>
+            {user?.organization?.subscription?.plan && (
+              <span className="inline-flex items-center rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-blue-700 ring-1 ring-inset ring-blue-600/20">
+                {user.organization.subscription.plan}
+              </span>
+            )}
+          </div>
 
           <p className="text-xs text-slate-500">
             Human Resource Management System
