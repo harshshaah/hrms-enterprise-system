@@ -27,6 +27,11 @@ import {
 } from '../employee/schemas/employee.schema';
 
 import {
+  User,
+  UserDocument,
+} from '../user/schemas/user.schema';
+
+import {
   LeaveRepository,
 } from './repositories/leave.repository';
 
@@ -48,8 +53,38 @@ export class LeaveService {
     private readonly employeeModel:
       Model<EmployeeDocument>,
 
+    @InjectModel(User.name)
+    private readonly userModel:
+      Model<UserDocument>,
+
     private readonly emailService: EmailService,
   ) {}
+
+  async resolveEmployeeId(authUser: any): Promise<string | null> {
+    if (!authUser) return null;
+
+    if (authUser.userId) {
+      const userDoc = await this.userModel.findById(authUser.userId).exec();
+      if (userDoc?.employee) {
+        return userDoc.employee.toString();
+      }
+    }
+
+    if (authUser.employee) {
+      return typeof authUser.employee === 'object' && authUser.employee._id
+        ? authUser.employee._id.toString()
+        : authUser.employee.toString();
+    }
+
+    if (authUser.email) {
+      const empDoc = await this.employeeModel.findOne({ email: authUser.email.toLowerCase() }).exec();
+      if (empDoc) {
+        return empDoc._id.toString();
+      }
+    }
+
+    return null;
+  }
 
   private calculateTotalDays(
     startDate: Date,
@@ -122,7 +157,18 @@ export class LeaveService {
   async create(
     createLeaveDto: CreateLeaveDto,
     organizationId?: string,
+    authUser?: any,
   ) {
+    if (authUser?.role === 'employee') {
+      const resolvedEmpId = await this.resolveEmployeeId(authUser);
+      if (!resolvedEmpId) {
+        throw new BadRequestException(
+          'No active employee profile linked to your user account.',
+        );
+      }
+      createLeaveDto.employee = resolvedEmpId;
+    }
+
     const {
       employee,
       startDate,

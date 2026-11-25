@@ -80,6 +80,10 @@ export class LeaveRepository {
   async findByEmployee(
     employeeId: string,
   ) {
+    if (!Types.ObjectId.isValid(employeeId)) {
+      return [];
+    }
+
     return this.leaveModel
       .find({
         employee:

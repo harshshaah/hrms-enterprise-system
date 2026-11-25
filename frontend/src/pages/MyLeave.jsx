@@ -26,12 +26,13 @@ function MyLeave() {
       setLoading(true);
       setError("");
 
-      if (!user?.employee) {
+      const empId = typeof user?.employee === "object" ? user.employee?._id : user?.employee;
+      if (!empId) {
         throw new Error("Employee profile not found.");
       }
 
       const [leavesRes, balanceRes] = await Promise.all([
-        getLeavesByEmployee(user.employee),
+        getLeavesByEmployee(empId),
         getMyLeaveBalance(),
       ]);
       setLeaves(leavesRes?.data || []);
@@ -80,8 +81,9 @@ function MyLeave() {
 
     try {
       setSubmitting(true);
+      const empId = typeof user?.employee === "object" ? user.employee?._id : user?.employee;
       await createLeave({
-        employee: user.employee,
+        employee: empId,
         leaveType: formData.leaveType,
         startDate: new Date(`${formData.startDate}T00:00:00`).toISOString(),
         endDate: new Date(`${formData.endDate}T00:00:00`).toISOString(),

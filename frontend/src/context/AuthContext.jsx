@@ -2,7 +2,9 @@ import {
   createContext,
   useContext,
   useState,
+  useEffect,
 } from "react";
+import { getMyProfile } from "../services/userService";
 
 const AuthContext = createContext(null);
 
@@ -31,6 +33,39 @@ export function AuthProvider({ children }) {
       return null;
     }
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem(TOKEN_KEY);
+    if (!token) return;
+
+    getMyProfile()
+      .then((res) => {
+        if (res?.data) {
+          const u = res.data;
+          const freshUser = {
+            id: u._id || u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            email: u.email,
+            role: u.role,
+            status: u.status,
+            employee:
+              typeof u.employee === "object" && u.employee?._id
+                ? u.employee._id
+                : u.employee || null,
+            organization:
+              typeof u.organization === "object" && u.organization?._id
+                ? u.organization._id
+                : u.organization || null,
+          };
+          localStorage.setItem(USER_KEY, JSON.stringify(freshUser));
+          setUser(freshUser);
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not sync user profile:", err?.message);
+      });
+  }, []);
 
   const login = (authData) => {
     const accessToken =

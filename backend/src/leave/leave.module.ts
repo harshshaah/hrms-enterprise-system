@@ -22,6 +22,11 @@ import {
 } from '../employee/schemas/employee.schema';
 
 import {
+  User,
+  UserSchema,
+} from '../user/schemas/user.schema';
+
+import {
   LeaveController,
 } from './leave.controller';
 
@@ -47,6 +52,10 @@ import {
       {
         name: Employee.name,
         schema: EmployeeSchema,
+      },
+      {
+        name: User.name,
+        schema: UserSchema,
       },
     ]),
   ],

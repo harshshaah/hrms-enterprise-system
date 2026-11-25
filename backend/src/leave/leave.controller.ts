@@ -62,6 +62,7 @@ export class LeaveController {
       await this.leaveService.create(
         createLeaveDto,
         orgId,
+        req.user,
       );
 
     return {
@@ -75,7 +76,7 @@ export class LeaveController {
   @Get('my-balance')
   @Roles('admin', 'hr', 'employee')
   async getMyBalance(@Req() req: any, @Query('year') year?: string) {
-    const employeeId = req.user?.employee;
+    const employeeId = await this.leaveService.resolveEmployeeId(req.user);
     if (!employeeId) {
       return {
         success: true,
@@ -129,7 +130,12 @@ export class LeaveController {
     const orgId = req?.user?.organizationId;
     let leaves;
 
-    if (employee) {
+    if (req?.user?.role === 'employee') {
+      const myEmpId = await this.leaveService.resolveEmployeeId(req.user);
+      leaves = myEmpId
+        ? await this.leaveService.findByEmployee(myEmpId)
+        : [];
+    } else if (employee) {
       leaves =
         await this.leaveService
           .findByEmployee(
