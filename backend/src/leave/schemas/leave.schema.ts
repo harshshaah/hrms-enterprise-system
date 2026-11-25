@@ -19,6 +19,14 @@ export class Leave {
   employee: Types.ObjectId;
 
   @Prop({
+    type: Types.ObjectId,
+    ref: 'Organization',
+    default: null,
+    index: true,
+  })
+  organization?: Types.ObjectId | null;
+
+  @Prop({
     required: true,
   })
   leaveType: string;

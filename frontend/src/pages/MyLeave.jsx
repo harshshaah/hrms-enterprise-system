@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { Loader2, RefreshCw, Plus, X, Save } from "lucide-react";
-import { getLeavesByEmployee, createLeave, cancelLeave } from "../services/leaveService";
+import { Loader2, RefreshCw, Plus, X, Save, Calendar, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { getLeavesByEmployee, createLeave, cancelLeave, getMyLeaveBalance } from "../services/leaveService";
 import { useAuth } from "../context/AuthContext";
 
 function MyLeave() {
   const { user } = useAuth();
   const [leaves, setLeaves] = useState([]);
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showApplyModal, setShowApplyModal] = useState(false);
@@ -29,8 +30,12 @@ function MyLeave() {
         throw new Error("Employee profile not found.");
       }
 
-      const response = await getLeavesByEmployee(user.employee);
-      setLeaves(response?.data || []);
+      const [leavesRes, balanceRes] = await Promise.all([
+        getLeavesByEmployee(user.employee),
+        getMyLeaveBalance(),
+      ]);
+      setLeaves(leavesRes?.data || []);
+      setBalance(balanceRes?.data || null);
     } catch (err) {
       console.error("Failed to fetch personal leaves:", err);
       setError(err?.message || "Failed to load your leaves.");
@@ -153,6 +158,91 @@ function MyLeave() {
         </div>
       )}
 
+      {/* Zimyo Leave Balance Quota Cards */}
+      {balance && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {/* Casual Leave */}
+          <div className="rounded-xl border border-blue-200 bg-blue-50/60 p-4 space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold text-blue-900">
+              <span>Casual Leave (CL)</span>
+              <span className="rounded bg-blue-200 px-1.5 py-0.5 text-[10px] text-blue-800">
+                {balance.casual.remaining} Left
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-blue-700">
+              <span>Used: {balance.casual.used}</span>
+              <span>Total: {balance.casual.total}</span>
+            </div>
+            <div className="h-1.5 w-full bg-blue-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 rounded-full"
+                style={{ width: `${Math.min(100, (balance.casual.used / balance.casual.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Sick Leave */}
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold text-emerald-900">
+              <span>Sick Leave (SL)</span>
+              <span className="rounded bg-emerald-200 px-1.5 py-0.5 text-[10px] text-emerald-800">
+                {balance.sick.remaining} Left
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-emerald-700">
+              <span>Used: {balance.sick.used}</span>
+              <span>Total: {balance.sick.total}</span>
+            </div>
+            <div className="h-1.5 w-full bg-emerald-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-600 rounded-full"
+                style={{ width: `${Math.min(100, (balance.sick.used / balance.sick.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Earned Leave */}
+          <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold text-purple-900">
+              <span>Earned Leave (EL/PL)</span>
+              <span className="rounded bg-purple-200 px-1.5 py-0.5 text-[10px] text-purple-800">
+                {balance.earned.remaining} Left
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-purple-700">
+              <span>Used: {balance.earned.used}</span>
+              <span>Total: {balance.earned.total}</span>
+            </div>
+            <div className="h-1.5 w-full bg-purple-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-purple-600 rounded-full"
+                style={{ width: `${Math.min(100, (balance.earned.used / balance.earned.total) * 100)}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Unpaid LWP */}
+          <div className="rounded-xl border border-amber-200 bg-amber-50/60 p-4 space-y-2">
+            <div className="flex justify-between items-center text-xs font-bold text-amber-900">
+              <span>Leave Without Pay (LWP)</span>
+              <span className="rounded bg-amber-200 px-1.5 py-0.5 text-[10px] text-amber-800">
+                {balance.unpaid.used} Days
+              </span>
+            </div>
+            <div className="flex justify-between text-xs text-amber-700">
+              <span>Taken this year:</span>
+              <span className="font-bold">{balance.unpaid.used} days</span>
+            </div>
+            <div className="h-1.5 w-full bg-amber-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-amber-600 rounded-full"
+                style={{ width: `${Math.min(100, balance.unpaid.used * 10)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-gray-500">
@@ -239,10 +329,12 @@ function MyLeave() {
                   onChange={handleFormChange}
                   className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 >
-                  <option value="casual">Casual Leave</option>
-                  <option value="sick">Sick Leave</option>
-                  <option value="paid">Paid Leave</option>
-                  <option value="unpaid">Unpaid Leave</option>
+                  <option value="casual">Casual Leave (CL) - Available: {balance?.casual?.remaining ?? 12}</option>
+                  <option value="sick">Sick Leave (SL) - Available: {balance?.sick?.remaining ?? 10}</option>
+                  <option value="earned">Earned / Privilege Leave (EL/PL) - Available: {balance?.earned?.remaining ?? 15}</option>
+                  <option value="maternity">Maternity Leave (26 Weeks)</option>
+                  <option value="paternity">Paternity Leave (15 Days)</option>
+                  <option value="unpaid">Leave Without Pay (LWP)</option>
                   <option value="other">Other</option>
                 </select>
               </div>

@@ -12,6 +12,11 @@ import {
 } from './schemas/leave.schema';
 
 import {
+  LeaveBalance,
+  LeaveBalanceSchema,
+} from './schemas/leave-balance.schema';
+
+import {
   Employee,
   EmployeeSchema,
 } from '../employee/schemas/employee.schema';
@@ -34,6 +39,10 @@ import {
       {
         name: Leave.name,
         schema: LeaveSchema,
+      },
+      {
+        name: LeaveBalance.name,
+        schema: LeaveBalanceSchema,
       },
       {
         name: Employee.name,

@@ -213,6 +213,8 @@ Authorization: Bearer <accessToken>
 | Method | Route | Roles | Description |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/leaves` | `admin`, `hr`, `employee` | List leaves (filters: `employee`, `status`) |
+| `GET` | `/leaves/my-balance` | `admin`, `hr`, `employee` | Retrieve current employee's annual leave quota & balance (CL, SL, EL) |
+| `GET` | `/leaves/balance/:employeeId` | `admin`, `hr` | Retrieve specific employee's annual leave quota & balance |
 | `GET` | `/leaves/:id` | `admin`, `hr`, `employee` | Get leave request details |
 | `POST` | `/leaves` | All Roles | Submit new leave application |
 | `PATCH` | `/leaves/:id` | `admin`, `hr` | Edit pending leave request |

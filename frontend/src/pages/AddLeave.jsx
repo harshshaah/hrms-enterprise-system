@@ -333,11 +333,23 @@ const AddLeave = () => {
               className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm capitalize outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             >
               <option value="casual">
-                Casual Leave
+                Casual Leave (CL)
               </option>
 
               <option value="sick">
-                Sick Leave
+                Sick Leave (SL)
+              </option>
+
+              <option value="earned">
+                Earned / Privilege Leave (EL/PL)
+              </option>
+
+              <option value="maternity">
+                Maternity Leave (26 Weeks)
+              </option>
+
+              <option value="paternity">
+                Paternity Leave (15 Days)
               </option>
 
               <option value="paid">
@@ -345,7 +357,7 @@ const AddLeave = () => {
               </option>
 
               <option value="unpaid">
-                Unpaid Leave
+                Unpaid Leave (LWP)
               </option>
 
               <option value="other">

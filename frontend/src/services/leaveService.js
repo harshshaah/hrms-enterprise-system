@@ -114,3 +114,15 @@ export const deleteLeave = async (
     },
   );
 };
+
+// Get current user's leave balance quota
+export const getMyLeaveBalance = async (year) => {
+  const qs = year ? `?year=${year}` : "";
+  return apiRequest(`/leaves/my-balance${qs}`);
+};
+
+// Get employee's leave balance quota
+export const getEmployeeLeaveBalance = async (employeeId, year) => {
+  const qs = year ? `?year=${year}` : "";
+  return apiRequest(`/leaves/balance/${employeeId}${qs}`);
+};

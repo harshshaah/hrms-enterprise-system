@@ -18,6 +18,9 @@ export class CreateLeaveDto {
   @IsIn([
     'casual',
     'sick',
+    'earned',
+    'maternity',
+    'paternity',
     'paid',
     'unpaid',
     'other',

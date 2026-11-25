@@ -121,6 +121,7 @@ export class LeaveService {
 
   async create(
     createLeaveDto: CreateLeaveDto,
+    organizationId?: string,
   ) {
     const {
       employee,
@@ -194,6 +195,19 @@ export class LeaveService {
         end,
       );
 
+    // Validate Annual Leave Balance Quota
+    const targetYear = start.getFullYear();
+    const balance = await this.getOrCreateBalance(employee, targetYear, organizationId);
+    const typeKey = createLeaveDto.leaveType === 'paid' ? 'earned' : createLeaveDto.leaveType;
+    if (typeKey !== 'unpaid' && typeKey !== 'other' && (balance as any)[typeKey]) {
+      const avail = (balance as any)[typeKey].remaining;
+      if (totalDays > avail) {
+        throw new BadRequestException(
+          `Insufficient ${typeKey.toUpperCase()} balance. Available: ${avail} day(s), but requested: ${totalDays} day(s).`
+        );
+      }
+    }
+
     const leave =
       await this.leaveRepository.create(
         {
@@ -202,6 +216,7 @@ export class LeaveService {
             new Types.ObjectId(
               employee,
             ),
+          organization: organizationId ? new Types.ObjectId(organizationId) : null,
           startDate: start,
           endDate: end,
           totalDays,
@@ -627,6 +642,80 @@ export class LeaveService {
     return {
       message:
         'Leave deleted successfully',
+    };
+  }
+
+  async getOrCreateBalance(employeeId: string, year?: number, organizationId?: string) {
+    if (!Types.ObjectId.isValid(employeeId)) {
+      throw new BadRequestException('Invalid employee ID');
+    }
+
+    const targetYear = year || new Date().getFullYear();
+    const startOfYear = new Date(targetYear, 0, 1);
+    const endOfYear = new Date(targetYear, 11, 31, 23, 59, 59, 999);
+
+    const approvedLeaves = await this.leaveRepository.findByEmployee(employeeId);
+    const yearApproved = approvedLeaves.filter((l: any) => {
+      const d = new Date(l.startDate);
+      return (l.status === 'approved' || l.status === 'pending') && d >= startOfYear && d <= endOfYear;
+    });
+
+    let usedCasual = 0;
+    let usedSick = 0;
+    let usedEarned = 0;
+    let usedMaternity = 0;
+    let usedPaternity = 0;
+    let usedUnpaid = 0;
+
+    for (const l of yearApproved) {
+      const t = l.leaveType;
+      const days = l.totalDays || 0;
+      if (t === 'casual') usedCasual += days;
+      else if (t === 'sick') usedSick += days;
+      else if (t === 'earned' || t === 'paid') usedEarned += days;
+      else if (t === 'maternity') usedMaternity += days;
+      else if (t === 'paternity') usedPaternity += days;
+      else if (t === 'unpaid') usedUnpaid += days;
+    }
+
+    return {
+      year: targetYear,
+      casual: {
+        total: 12,
+        used: usedCasual,
+        remaining: Math.max(0, 12 - usedCasual),
+        label: 'Casual Leave (CL)',
+      },
+      sick: {
+        total: 10,
+        used: usedSick,
+        remaining: Math.max(0, 10 - usedSick),
+        label: 'Sick Leave (SL)',
+      },
+      earned: {
+        total: 15,
+        used: usedEarned,
+        remaining: Math.max(0, 15 - usedEarned),
+        label: 'Earned Leave (EL/PL)',
+      },
+      maternity: {
+        total: 182,
+        used: usedMaternity,
+        remaining: Math.max(0, 182 - usedMaternity),
+        label: 'Maternity Leave',
+      },
+      paternity: {
+        total: 15,
+        used: usedPaternity,
+        remaining: Math.max(0, 15 - usedPaternity),
+        label: 'Paternity Leave',
+      },
+      unpaid: {
+        total: 999,
+        used: usedUnpaid,
+        remaining: 999,
+        label: 'Leave Without Pay (LWP)',
+      },
     };
   }
 }

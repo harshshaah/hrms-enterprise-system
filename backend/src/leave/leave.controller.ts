@@ -55,10 +55,13 @@ export class LeaveController {
   async create(
     @Body()
     createLeaveDto: CreateLeaveDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const leave =
       await this.leaveService.create(
         createLeaveDto,
+        orgId,
       );
 
     return {
@@ -66,6 +69,45 @@ export class LeaveController {
       message:
         'Leave created successfully',
       data: leave,
+    };
+  }
+
+  @Get('my-balance')
+  @Roles('admin', 'hr', 'employee')
+  async getMyBalance(@Req() req: any, @Query('year') year?: string) {
+    const employeeId = req.user?.employee;
+    if (!employeeId) {
+      return {
+        success: true,
+        data: null,
+      };
+    }
+    const balance = await this.leaveService.getOrCreateBalance(
+      employeeId,
+      year ? parseInt(year, 10) : undefined,
+      req.user?.organizationId,
+    );
+    return {
+      success: true,
+      data: balance,
+    };
+  }
+
+  @Get('balance/:employeeId')
+  @Roles('admin', 'hr')
+  async getEmployeeBalance(
+    @Param('employeeId') employeeId: string,
+    @Query('year') year?: string,
+    @Req() req?: any,
+  ) {
+    const balance = await this.leaveService.getOrCreateBalance(
+      employeeId,
+      year ? parseInt(year, 10) : undefined,
+      req?.user?.organizationId,
+    );
+    return {
+      success: true,
+      data: balance,
     };
   }
 
