@@ -18,9 +18,15 @@ function MyPayroll() {
         throw new Error("Employee profile not found.");
       }
 
-      // getPayrolls might return all, so we filter by current employee ID
-      const response = await getPayrolls({ limit: 100 }); // Fetch enough records
-      const allPayrolls = response?.data?.payrolls || response?.data || [];
+      // getPayrolls returns paginated { data: [...], pagination: {...} }
+      const response = await getPayrolls({ limit: 100 });
+      const allPayrolls = Array.isArray(response?.data?.data)
+        ? response.data.data
+        : Array.isArray(response?.data)
+        ? response.data
+        : Array.isArray(response?.data?.payrolls)
+        ? response.data.payrolls
+        : [];
       
       const myPayrolls = allPayrolls.filter(
         (p) => p.employee?._id === user.employee || p.employee === user.employee
