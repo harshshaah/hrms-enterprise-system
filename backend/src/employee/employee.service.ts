@@ -104,6 +104,7 @@ export class EmployeeService {
 
   async create(
     createEmployeeDto: CreateEmployeeDto,
+    organizationId?: string,
   ) {
     const email =
       createEmployeeDto.email
@@ -167,12 +168,14 @@ export class EmployeeService {
     // EMPLOYEE DATA
     // ------------------------------------------
 
-    const employeeData = {
+    const employeeData: any = {
       ...createEmployeeDto,
 
       email,
 
       department,
+
+      organization: organizationId ? new Types.ObjectId(organizationId) : null,
 
       dateOfBirth:
         createEmployeeDto.dateOfBirth
@@ -238,6 +241,8 @@ export class EmployeeService {
 
           employee:
             employee._id,
+
+          organization: organizationId ? new Types.ObjectId(organizationId) : null,
         });
       } catch (error) {
         // --------------------------------------
@@ -259,8 +264,8 @@ export class EmployeeService {
   // GET ALL EMPLOYEES
   // ==========================================
 
-  async findAll() {
-    return this.employeeRepository.findAll();
+  async findAll(organizationId?: string) {
+    return this.employeeRepository.findAll(organizationId);
   }
 
   // ==========================================

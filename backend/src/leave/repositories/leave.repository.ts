@@ -35,9 +35,18 @@ export class LeaveRepository {
     return leave.save();
   }
 
-  async findAll() {
+  async findAll(organizationId?: string) {
+    const filter = organizationId
+      ? {
+          $or: [
+            { organization: new Types.ObjectId(organizationId) },
+            { organization: null },
+          ],
+        }
+      : {};
+
     return this.leaveModel
-      .find()
+      .find(filter)
       .populate(
         'employee',
         'firstName lastName email department designation',
@@ -90,11 +99,18 @@ export class LeaveRepository {
 
   async findByStatus(
     status: string,
+    organizationId?: string,
   ) {
+    const filter: any = { status };
+    if (organizationId) {
+      filter.$or = [
+        { organization: new Types.ObjectId(organizationId) },
+        { organization: null },
+      ];
+    }
+
     return this.leaveModel
-      .find({
-        status,
-      })
+      .find(filter)
       .populate(
         'employee',
         'firstName lastName email department designation',

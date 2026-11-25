@@ -227,9 +227,9 @@ export class LeaveService {
     return leave;
   }
 
-  async findAll() {
+  async findAll(organizationId?: string) {
     return this.leaveRepository
-      .findAll();
+      .findAll(organizationId);
   }
 
   async findById(
@@ -277,6 +277,7 @@ export class LeaveService {
 
   async findByStatus(
     status: string,
+    organizationId?: string,
   ) {
     const allowedStatuses = [
       'pending',
@@ -296,7 +297,7 @@ export class LeaveService {
     }
 
     return this.leaveRepository
-      .findByStatus(status);
+      .findByStatus(status, organizationId);
   }
 
   async update(

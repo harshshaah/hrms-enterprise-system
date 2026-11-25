@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import {
   Payroll,
@@ -32,9 +32,17 @@ export class PayrollRepository {
       search?: string;
       sortBy?: string;
       sortOrder?: 'asc' | 'desc';
+      organizationId?: string;
     },
   ) {
     const query: any = {};
+
+    if (filters?.organizationId) {
+      query.$or = [
+        { organization: new Types.ObjectId(filters.organizationId) },
+        { organization: null },
+      ];
+    }
 
     if (filters?.month !== undefined) {
       query.month = filters.month;

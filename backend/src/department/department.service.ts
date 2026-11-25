@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 
 import {
   Department,
@@ -23,6 +23,7 @@ export class DepartmentService {
 
   async create(
     createDepartmentDto: CreateDepartmentDto,
+    organizationId?: string,
   ) {
     const name =
       createDepartmentDto.name.trim();
@@ -62,14 +63,24 @@ export class DepartmentService {
         name,
         code,
         status: 'active',
+        organization: organizationId ? new Types.ObjectId(organizationId) : null,
       });
 
     return department.save();
   }
 
-  async findAll() {
+  async findAll(organizationId?: string) {
+    const query = organizationId
+      ? {
+          $or: [
+            { organization: new Types.ObjectId(organizationId) },
+            { organization: null },
+          ],
+        }
+      : {};
+
     return this.departmentModel
-      .find()
+      .find(query)
       .sort({
         createdAt: -1,
       })

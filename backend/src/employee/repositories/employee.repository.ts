@@ -8,6 +8,7 @@ import {
 
 import {
   Model,
+  Types,
 } from 'mongoose';
 
 import {
@@ -60,9 +61,18 @@ export class EmployeeRepository {
   // FIND ALL EMPLOYEES
   // ==========================================
 
-  async findAll(): Promise<EmployeeDocument[]> {
+  async findAll(organizationId?: string): Promise<EmployeeDocument[]> {
+    const filter = organizationId
+      ? {
+          $or: [
+            { organization: new Types.ObjectId(organizationId) },
+            { organization: null },
+          ],
+        }
+      : {};
+
     return this.employeeModel
-      .find()
+      .find(filter)
       .populate(
         'department',
         'name code description status',

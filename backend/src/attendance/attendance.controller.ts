@@ -137,10 +137,13 @@ export class AttendanceController {
   async findAll(
     @Query()
     filters: AttendanceFilterDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const attendance =
       await this.attendanceService.findAll(
         filters,
+        orgId,
       );
 
     return {
@@ -156,10 +159,13 @@ export class AttendanceController {
   async getSummary(
     @Query()
     filters: AttendanceSummaryDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const summary =
       await this.attendanceService.getSummary(
         filters.date,
+        orgId,
       );
 
     return {

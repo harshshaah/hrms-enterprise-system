@@ -12,7 +12,7 @@ export class DashboardService {
     private readonly dashboardRepository: DashboardRepository,
   ) {}
 
-  async getDashboard() {
+  async getDashboard(organizationId?: string) {
     const [
       employees,
       departments,
@@ -20,15 +20,15 @@ export class DashboardService {
       recentEmployees,
       leaves,
     ] = await Promise.all([
-      this.dashboardRepository.getEmployeeStats(),
+      this.dashboardRepository.getEmployeeStats(organizationId),
 
-      this.dashboardRepository.getDepartmentStats(),
+      this.dashboardRepository.getDepartmentStats(organizationId),
 
-      this.dashboardRepository.getTodayAttendanceStats(),
+      this.dashboardRepository.getTodayAttendanceStats(organizationId),
 
-      this.dashboardRepository.getRecentEmployees(),
+      this.dashboardRepository.getRecentEmployees(organizationId),
 
-      this.dashboardRepository.getLeaveStats(),
+      this.dashboardRepository.getLeaveStats(organizationId),
     ]);
 
     return {

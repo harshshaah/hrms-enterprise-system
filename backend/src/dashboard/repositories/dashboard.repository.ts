@@ -56,19 +56,34 @@ export class DashboardRepository {
     private readonly userModel: Model<UserDocument>,
   ) {}
 
-  async getEmployeeStats() {
+  private orgFilter(orgId?: string) {
+    return orgId
+      ? {
+          $or: [
+            { organization: new Types.ObjectId(orgId) },
+            { organization: null },
+          ],
+        }
+      : {};
+  }
+
+  async getEmployeeStats(organizationId?: string) {
+    const baseFilter = this.orgFilter(organizationId);
+
     const [
       total,
       active,
       inactive,
     ] = await Promise.all([
-      this.employeeModel.countDocuments(),
+      this.employeeModel.countDocuments(baseFilter),
 
       this.employeeModel.countDocuments({
+        ...baseFilter,
         status: 'active',
       }),
 
       this.employeeModel.countDocuments({
+        ...baseFilter,
         status: 'inactive',
       }),
     ]);
@@ -80,19 +95,23 @@ export class DashboardRepository {
     };
   }
 
-  async getDepartmentStats() {
+  async getDepartmentStats(organizationId?: string) {
+    const baseFilter = this.orgFilter(organizationId);
+
     const [
       total,
       active,
       inactive,
     ] = await Promise.all([
-      this.departmentModel.countDocuments(),
+      this.departmentModel.countDocuments(baseFilter),
 
       this.departmentModel.countDocuments({
+        ...baseFilter,
         status: 'active',
       }),
 
       this.departmentModel.countDocuments({
+        ...baseFilter,
         status: 'inactive',
       }),
     ]);
@@ -104,7 +123,7 @@ export class DashboardRepository {
     };
   }
 
-  async getTodayAttendanceStats() {
+  async getTodayAttendanceStats(organizationId?: string) {
     const today = new Date();
 
     const startOfDay =
@@ -127,15 +146,24 @@ export class DashboardRepository {
       999,
     );
 
+    const match: any = {
+      date: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    };
+
+    if (organizationId) {
+      match.$or = [
+        { organization: new Types.ObjectId(organizationId) },
+        { organization: null },
+      ];
+    }
+
     const result =
       await this.attendanceModel.aggregate([
         {
-          $match: {
-            date: {
-              $gte: startOfDay,
-              $lte: endOfDay,
-            },
-          },
+          $match: match,
         },
 
         {
@@ -199,7 +227,9 @@ export class DashboardRepository {
     return attendance;
   }
 
-  async getLeaveStats() {
+  async getLeaveStats(organizationId?: string) {
+    const baseFilter = this.orgFilter(organizationId);
+
     const [
       total,
       pending,
@@ -207,21 +237,25 @@ export class DashboardRepository {
       rejected,
       cancelled,
     ] = await Promise.all([
-      this.leaveModel.countDocuments(),
+      this.leaveModel.countDocuments(baseFilter),
 
       this.leaveModel.countDocuments({
+        ...baseFilter,
         status: 'pending',
       }),
 
       this.leaveModel.countDocuments({
+        ...baseFilter,
         status: 'approved',
       }),
 
       this.leaveModel.countDocuments({
+        ...baseFilter,
         status: 'rejected',
       }),
 
       this.leaveModel.countDocuments({
+        ...baseFilter,
         status: 'cancelled',
       }),
     ]);
@@ -235,9 +269,11 @@ export class DashboardRepository {
     };
   }
 
-  async getRecentEmployees() {
+  async getRecentEmployees(organizationId?: string) {
+    const filter = this.orgFilter(organizationId);
+
     return this.employeeModel
-      .find()
+      .find(filter)
       .populate(
         'department',
         'name code',

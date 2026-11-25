@@ -118,6 +118,7 @@ export class PayrollService {
 
  async findAll(
   query: PayrollQueryDto,
+  organizationId?: string,
 ) {
   const {
     month,
@@ -139,6 +140,7 @@ export class PayrollService {
     search,
     sortBy,
     sortOrder,
+    organizationId,
   });
 }
 

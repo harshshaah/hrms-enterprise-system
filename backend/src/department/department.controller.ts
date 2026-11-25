@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 
@@ -48,10 +49,13 @@ export class DepartmentController {
   async create(
     @Body()
     createDepartmentDto: CreateDepartmentDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const department =
       await this.departmentService.create(
         createDepartmentDto,
+        orgId,
       );
 
     return {
@@ -68,9 +72,10 @@ export class DepartmentController {
     'hr',
     'employee',
   )
-  async findAll() {
+  async findAll(@Req() req: any) {
+    const orgId = req.user?.organizationId;
     const departments =
-      await this.departmentService.findAll();
+      await this.departmentService.findAll(orgId);
 
     return {
       success: true,

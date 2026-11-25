@@ -33,9 +33,10 @@ export class DashboardController {
 
   @Get()
   @Roles('admin', 'hr')
-  async getDashboard() {
+  async getDashboard(@Req() req: any) {
+    const orgId = req.user?.organizationId;
     const dashboard =
-      await this.dashboardService.getDashboard();
+      await this.dashboardService.getDashboard(orgId);
 
     return {
       success: true,

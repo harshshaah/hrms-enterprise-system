@@ -96,10 +96,13 @@ export class PayrollController {
   async findAll(
     @Query()
     query: PayrollQueryDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const data =
       await this.payrollService.findAll(
         query,
+        orgId,
       );
 
     return {

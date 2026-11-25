@@ -30,9 +30,17 @@ export class AttendanceRepository {
       employee?: string;
       date?: Date;
       status?: string;
+      organizationId?: string;
     },
   ): Promise<AttendanceDocument[]> {
     const query: any = {};
+
+    if (filters.organizationId) {
+      query.$or = [
+        { organization: new Types.ObjectId(filters.organizationId) },
+        { organization: null },
+      ];
+    }
 
     if (filters.employee) {
       query.employee = new Types.ObjectId(
@@ -89,8 +97,16 @@ export class AttendanceRepository {
 
   async getSummary(
     date?: Date,
+    organizationId?: string,
   ) {
     const match: any = {};
+
+    if (organizationId) {
+      match.$or = [
+        { organization: new Types.ObjectId(organizationId) },
+        { organization: null },
+      ];
+    }
 
     if (date) {
       const startOfDay = new Date(

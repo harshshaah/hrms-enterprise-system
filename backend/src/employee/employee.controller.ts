@@ -49,10 +49,13 @@ export class EmployeeController {
   async create(
     @Body()
     createEmployeeDto: CreateEmployeeDto,
+    @Req() req: any,
   ) {
+    const orgId = req.user?.organizationId;
     const employee =
       await this.employeeService.create(
         createEmployeeDto,
+        orgId,
       );
 
     return {
@@ -69,9 +72,10 @@ export class EmployeeController {
     'hr',
     'employee',
   )
-  async findAll() {
+  async findAll(@Req() req: any) {
+    const orgId = req.user?.organizationId;
     const employees =
-      await this.employeeService.findAll();
+      await this.employeeService.findAll(orgId);
 
     return {
       success: true,

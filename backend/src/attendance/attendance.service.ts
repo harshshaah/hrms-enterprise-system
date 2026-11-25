@@ -116,6 +116,7 @@ export class AttendanceService {
 
   async getSummary(
     date?: string,
+    organizationId?: string,
   ) {
     const parsedDate = date
       ? new Date(date)
@@ -124,6 +125,7 @@ export class AttendanceService {
     const summary =
       await this.attendanceRepository.getSummary(
         parsedDate,
+        organizationId,
       );
 
     const result = {
@@ -167,6 +169,7 @@ export class AttendanceService {
       date?: string;
       status?: string;
     } = {},
+    organizationId?: string,
   ) {
     const date = filters.date
       ? new Date(filters.date)
@@ -181,6 +184,8 @@ export class AttendanceService {
 
         status:
           filters.status,
+
+        organizationId,
       },
     );
   }

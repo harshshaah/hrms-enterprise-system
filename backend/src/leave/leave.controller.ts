@@ -123,7 +123,10 @@ export class LeaveController {
 
     @Query('status')
     status?: string,
+
+    @Req() req?: any,
   ) {
+    const orgId = req?.user?.organizationId;
     let leaves;
 
     if (employee) {
@@ -137,11 +140,12 @@ export class LeaveController {
         await this.leaveService
           .findByStatus(
             status,
+            orgId,
           );
     } else {
       leaves =
         await this.leaveService
-          .findAll();
+          .findAll(orgId);
     }
 
     return {
