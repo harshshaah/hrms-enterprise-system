@@ -1,0 +1,632 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
+
+import { EmailService } from '../common/email/email.service';
+
+import {
+  Types,
+  Model,
+} from 'mongoose';
+
+import {
+  InjectModel,
+} from '@nestjs/mongoose';
+
+import {
+  Leave,
+  LeaveDocument,
+} from './schemas/leave.schema';
+
+import {
+  Employee,
+  EmployeeDocument,
+} from '../employee/schemas/employee.schema';
+
+import {
+  LeaveRepository,
+} from './repositories/leave.repository';
+
+import {
+  CreateLeaveDto,
+} from './dto/create-leave.dto';
+
+import {
+  UpdateLeaveDto,
+} from './dto/update-leave.dto';
+
+@Injectable()
+export class LeaveService {
+  constructor(
+    private readonly leaveRepository:
+      LeaveRepository,
+
+    @InjectModel(Employee.name)
+    private readonly employeeModel:
+      Model<EmployeeDocument>,
+
+    private readonly emailService: EmailService,
+  ) {}
+
+  private calculateTotalDays(
+    startDate: Date,
+    endDate: Date,
+  ): number {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    start.setUTCHours(0, 0, 0, 0);
+    end.setUTCHours(0, 0, 0, 0);
+
+    const difference =
+      end.getTime() - start.getTime();
+
+    return (
+      Math.floor(
+        difference /
+          (1000 * 60 * 60 * 24),
+      ) + 1
+    );
+  }
+
+  private async checkOverlap(
+    employeeId: string,
+    startDate: Date,
+    endDate: Date,
+    excludeId?: string,
+  ) {
+    const leaves =
+      await this.leaveRepository.findByEmployee(
+        employeeId,
+      );
+
+    const hasOverlap = leaves.some(
+      (leave: any) => {
+        if (
+          excludeId &&
+          leave._id.toString() === excludeId
+        ) {
+          return false;
+        }
+
+        if (
+          leave.status === 'rejected' ||
+          leave.status === 'cancelled'
+        ) {
+          return false;
+        }
+
+        const existingStart =
+          new Date(leave.startDate);
+
+        const existingEnd =
+          new Date(leave.endDate);
+
+        return (
+          startDate <= existingEnd &&
+          endDate >= existingStart
+        );
+      },
+    );
+
+    if (hasOverlap) {
+      throw new ConflictException(
+        'Leave dates overlap with an existing leave',
+      );
+    }
+  }
+
+  async create(
+    createLeaveDto: CreateLeaveDto,
+  ) {
+    const {
+      employee,
+      startDate,
+      endDate,
+    } = createLeaveDto;
+
+    if (
+      !Types.ObjectId.isValid(
+        employee,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid employee ID',
+      );
+    }
+
+    const employeeExists =
+      await this.employeeModel.findById(
+        employee,
+      );
+
+    if (!employeeExists) {
+      throw new NotFoundException(
+        'Employee not found',
+      );
+    }
+
+    if (
+      employeeExists.status !==
+      'active'
+    ) {
+      throw new BadRequestException(
+        'Leave can only be applied for an active employee',
+      );
+    }
+
+    const start =
+      new Date(startDate);
+
+    const end =
+      new Date(endDate);
+
+    if (
+      Number.isNaN(start.getTime()) ||
+      Number.isNaN(end.getTime())
+    ) {
+      throw new BadRequestException(
+        'Invalid leave dates',
+      );
+    }
+
+    start.setUTCHours(0, 0, 0, 0);
+    end.setUTCHours(0, 0, 0, 0);
+
+    if (start > end) {
+      throw new BadRequestException(
+        'Start date cannot be after end date',
+      );
+    }
+
+    await this.checkOverlap(
+      employee,
+      start,
+      end,
+    );
+
+    const totalDays =
+      this.calculateTotalDays(
+        start,
+        end,
+      );
+
+    const leave =
+      await this.leaveRepository.create(
+        {
+          ...createLeaveDto,
+          employee:
+            new Types.ObjectId(
+              employee,
+            ),
+          startDate: start,
+          endDate: end,
+          totalDays,
+          status: 'pending',
+        },
+      );
+
+    return leave;
+  }
+
+  async findAll() {
+    return this.leaveRepository
+      .findAll();
+  }
+
+  async findById(
+    id: string,
+  ) {
+    if (
+      !Types.ObjectId.isValid(id)
+    ) {
+      throw new BadRequestException(
+        'Invalid leave ID',
+      );
+    }
+
+    const leave =
+      await this.leaveRepository
+        .findById(id);
+
+    if (!leave) {
+      throw new NotFoundException(
+        'Leave not found',
+      );
+    }
+
+    return leave;
+  }
+
+  async findByEmployee(
+    employeeId: string,
+  ) {
+    if (
+      !Types.ObjectId.isValid(
+        employeeId,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid employee ID',
+      );
+    }
+
+    return this.leaveRepository
+      .findByEmployee(
+        employeeId,
+      );
+  }
+
+  async findByStatus(
+    status: string,
+  ) {
+    const allowedStatuses = [
+      'pending',
+      'approved',
+      'rejected',
+      'cancelled',
+    ];
+
+    if (
+      !allowedStatuses.includes(
+        status,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid leave status',
+      );
+    }
+
+    return this.leaveRepository
+      .findByStatus(status);
+  }
+
+  async update(
+    id: string,
+    updateLeaveDto: UpdateLeaveDto,
+  ) {
+    if (
+      !Types.ObjectId.isValid(id)
+    ) {
+      throw new BadRequestException(
+        'Invalid leave ID',
+      );
+    }
+
+    const existingLeave =
+      await this.leaveRepository.findById(
+        id,
+      );
+
+    if (!existingLeave) {
+      throw new NotFoundException(
+        'Leave not found',
+      );
+    }
+
+    if (
+      existingLeave.status !==
+      'pending'
+    ) {
+      throw new BadRequestException(
+        'Only pending leaves can be edited',
+      );
+    }
+
+    const startDate =
+      updateLeaveDto.startDate
+        ? new Date(
+            updateLeaveDto.startDate,
+          )
+        : new Date(
+            existingLeave.startDate,
+          );
+
+    const endDate =
+      updateLeaveDto.endDate
+        ? new Date(
+            updateLeaveDto.endDate,
+          )
+        : new Date(
+            existingLeave.endDate,
+          );
+
+    if (
+      Number.isNaN(startDate.getTime()) ||
+      Number.isNaN(endDate.getTime())
+    ) {
+      throw new BadRequestException(
+        'Invalid leave dates',
+      );
+    }
+
+    startDate.setUTCHours(
+      0,
+      0,
+      0,
+      0,
+    );
+
+    endDate.setUTCHours(
+      0,
+      0,
+      0,
+      0,
+    );
+
+    if (startDate > endDate) {
+      throw new BadRequestException(
+        'Start date cannot be after end date',
+      );
+    }
+
+    const employeeValue: any =
+      existingLeave.employee;
+
+    const employeeId =
+      employeeValue?._id
+        ? employeeValue._id.toString()
+        : employeeValue.toString();
+
+    await this.checkOverlap(
+      employeeId,
+      startDate,
+      endDate,
+      id,
+    );
+
+    const totalDays =
+      this.calculateTotalDays(
+        startDate,
+        endDate,
+      );
+
+    const updateData: Partial<Leave> = {
+      startDate,
+      endDate,
+      totalDays,
+    };
+
+    if (
+      updateLeaveDto.leaveType !==
+      undefined
+    ) {
+      updateData.leaveType =
+        updateLeaveDto.leaveType;
+    }
+
+    if (
+      updateLeaveDto.reason !==
+      undefined
+    ) {
+      updateData.reason =
+        updateLeaveDto.reason;
+    }
+
+    if (
+      updateLeaveDto.remarks !==
+      undefined
+    ) {
+      updateData.remarks =
+        updateLeaveDto.remarks;
+    }
+
+    return this.leaveRepository
+      .updateById(
+        id,
+        updateData,
+      );
+  }
+
+  async approve(
+    id: string,
+    approvedBy: string,
+  ) {
+    if (
+      !Types.ObjectId.isValid(id)
+    ) {
+      throw new BadRequestException(
+        'Invalid leave ID',
+      );
+    }
+
+    if (
+      !Types.ObjectId.isValid(
+        approvedBy,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid approver ID',
+      );
+    }
+
+    const leave =
+      await this.leaveRepository
+        .findById(id);
+
+    if (!leave) {
+      throw new NotFoundException(
+        'Leave not found',
+      );
+    }
+
+    if (
+      leave.status !== 'pending'
+    ) {
+      throw new BadRequestException(
+        'Only pending leaves can be approved',
+      );
+    }
+
+    const updatedLeave = await this.leaveRepository
+      .updateById(
+        id,
+        {
+          status: 'approved',
+          approvedBy:
+            new Types.ObjectId(
+              approvedBy,
+            ),
+          approvedAt: new Date(),
+        },
+      );
+
+    const employeeId = (leave.employee as any)._id || leave.employee;
+    const employee = await this.employeeModel.findById(employeeId);
+    if (employee && employee.email) {
+      await this.emailService.sendLeaveStatusEmail(
+        employee.email,
+        `${employee.firstName} ${employee.lastName}`,
+        'approved',
+        leave.startDate,
+        leave.endDate,
+      );
+    }
+
+    return updatedLeave;
+  }
+
+  async reject(
+    id: string,
+    approvedBy: string,
+    remarks?: string,
+  ) {
+    if (
+      !Types.ObjectId.isValid(id)
+    ) {
+      throw new BadRequestException(
+        'Invalid leave ID',
+      );
+    }
+
+    if (
+      !Types.ObjectId.isValid(
+        approvedBy,
+      )
+    ) {
+      throw new BadRequestException(
+        'Invalid approver ID',
+      );
+    }
+
+    const leave =
+      await this.leaveRepository
+        .findById(id);
+
+    if (!leave) {
+      throw new NotFoundException(
+        'Leave not found',
+      );
+    }
+
+    if (
+      leave.status !== 'pending'
+    ) {
+      throw new BadRequestException(
+        'Only pending leaves can be rejected',
+      );
+    }
+
+    const updatedLeave = await this.leaveRepository
+      .updateById(
+        id,
+        {
+          status: 'rejected',
+          approvedBy:
+            new Types.ObjectId(
+              approvedBy,
+            ),
+          approvedAt: new Date(),
+          ...(remarks
+            ? { remarks }
+            : {}),
+        },
+      );
+
+    const employeeId = (leave.employee as any)._id || leave.employee;
+    const employee = await this.employeeModel.findById(employeeId);
+    if (employee && employee.email) {
+      await this.emailService.sendLeaveStatusEmail(
+        employee.email,
+        `${employee.firstName} ${employee.lastName}`,
+        'rejected',
+        leave.startDate,
+        leave.endDate,
+        remarks,
+      );
+    }
+
+    return updatedLeave;
+  }
+
+  async cancel(
+    id: string,
+  ) {
+    if (
+      !Types.ObjectId.isValid(id)
+    ) {
+      throw new BadRequestException(
+        'Invalid leave ID',
+      );
+    }
+
+    const leave =
+      await this.leaveRepository
+        .findById(id);
+
+    if (!leave) {
+      throw new NotFoundException(
+        'Leave not found',
+      );
+    }
+
+    if (
+      leave.status !== 'pending'
+    ) {
+      throw new BadRequestException(
+        'Only pending leaves can be cancelled',
+      );
+    }
+
+    return this.leaveRepository
+      .updateById(
+        id,
+        {
+          status: 'cancelled',
+        },
+      );
+  }
+
+  async remove(
+    id: string,
+  ) {
+    if (
+      !Types.ObjectId.isValid(id)
+    ) {
+      throw new BadRequestException(
+        'Invalid leave ID',
+      );
+    }
+
+    const leave =
+      await this.leaveRepository
+        .findById(id);
+
+    if (!leave) {
+      throw new NotFoundException(
+        'Leave not found',
+      );
+    }
+
+    await this.leaveRepository
+      .deleteById(id);
+
+    return {
+      message:
+        'Leave deleted successfully',
+    };
+  }
+}
